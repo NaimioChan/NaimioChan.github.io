@@ -31,6 +31,19 @@ initCursorGlow($('.cursor-glow'));
 initBubbles($('.bubbles'));
 initRipple($('.ripple-layer'), () => water.drop(noteIndex++));
 
+// ── 作品行：桌面鼠标滚轮转为横向滚动 ──
+const workGrid = $('.work-grid');
+workGrid.addEventListener(
+  'wheel',
+  (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      workGrid.scrollLeft += e.deltaY;
+    }
+  },
+  { passive: false },
+);
+
 // ── 打字机副标题（单句，打完保持） ──
 new Typewriter(
   $('.type-text'),
