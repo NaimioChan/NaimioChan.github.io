@@ -1,0 +1,15 @@
+# 依赖与构建产物
+node_modules
+dist
+
+# 本地测试截图
+preview-*.png
+
+# 日志与本地配置
+*.local
+npm-debug.log*
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/

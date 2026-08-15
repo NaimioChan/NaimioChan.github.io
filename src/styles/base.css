@@ -1,0 +1,152 @@
+/* ═══════════ base.css — 重置 / 背景层 / 全局装饰 ═══════════ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background-color 0.5s var(--ease-out), color 0.5s var(--ease-out);
+}
+
+::selection { background: var(--aqua-soft); color: var(--aqua-deep); }
+
+a { color: inherit; text-decoration: none; }
+
+button { font-family: inherit; cursor: pointer; }
+
+:focus-visible {
+  outline: 2px solid var(--aqua);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ── 背景水光：缓慢漂移的三团光 ── */
+.bg-aura {
+  position: fixed;
+  inset: -20%;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 38% at 22% 18%, var(--aura-a), transparent 70%),
+    radial-gradient(46% 42% at 82% 30%, var(--aura-b), transparent 72%),
+    radial-gradient(38% 36% at 55% 88%, var(--aura-c), transparent 70%);
+  filter: blur(6px);
+  animation: aura-drift 26s ease-in-out infinite alternate;
+}
+
+/* ── 上升气泡（JS 生成 .bubble 子元素） ── */
+.bubbles {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.bubble {
+  position: absolute;
+  bottom: -40px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, var(--bubble), transparent 62%);
+  opacity: 0;
+  animation-name: bubble-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* ── 光标水色光晕 ── */
+.cursor-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 340px;
+  height: 340px;
+  margin: -170px 0 0 -170px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle, var(--glow), transparent 62%);
+  opacity: 0;
+  transform: translate3d(var(--gx, 0), var(--gy, 0), 0);
+  transition: opacity 0.4s ease;
+  will-change: transform;
+}
+body.has-glow .cursor-glow { opacity: 0.5; }
+
+/* ── 滚动进度条 ── */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  z-index: 90;
+  background: var(--progress);
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 10px var(--aqua-glow);
+}
+
+/* ── 点击涟漪层 ── */
+.ripple-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  pointer-events: none;
+}
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--aqua);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0.55;
+  animation: ripple-expand 0.85s var(--ease-out) forwards;
+}
+
+/* ── 布局容器 ── */
+main {
+  position: relative;
+  z-index: 1;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.section {
+  padding: 84px 0 20px;
+  scroll-margin-top: 90px;
+}
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--aqua);
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.title-num {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  background: var(--bg);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-3);
+  padding: 4px 12px;
+}
+
+@media (max-width: 640px) {
+  .section { padding: 64px 0 12px; }
+}
