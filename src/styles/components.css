@@ -83,7 +83,7 @@
 .hero-name {
   position: relative;
   font-family: var(--font-display);
-  font-size: clamp(92px, 18vw, 184px);
+  font-size: clamp(72px, 14vw, 148px);
   font-weight: 700;
   line-height: 1.02;
   letter-spacing: 0.02em;
