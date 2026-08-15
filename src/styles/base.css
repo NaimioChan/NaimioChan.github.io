@@ -137,14 +137,15 @@ main {
   background: var(--line);
 }
 .title-num {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--ink-soft);
+  letter-spacing: 0.28em;
+  color: var(--aqua);
   background: var(--bg);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-3);
-  padding: 4px 12px;
+  padding: 7px 20px;
+  margin-left: 2px;
 }
 
 @media (max-width: 640px) {
