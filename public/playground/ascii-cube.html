@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCII 立方体 · 非茗工坊</title>
+<style>
+  :root {
+    --bg: #e6f0fa;
+    --surface: #dbe7f3;
+    --shadow-dk: #b9c9d9;
+    --shadow-lt: #ffffff;
+    --accent: #3389d1;
+    --accent-soft: #7fb8e8;
+    --text: #33506b;
+    --text-dim: #7d95ad;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Times New Roman", Times, "Source Han Serif SC", "Noto Serif SC", "思源宋体", "Songti SC", "SimSun", serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: var(--text);
+    padding: 28px 16px 40px;
+  }
+  .back {
+    align-self: flex-start;
+    font-size: 14px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: 5px 5px 12px var(--shadow-dk), -5px -5px 12px var(--shadow-lt);
+    transition: color .2s;
+  }
+  .back:hover { color: var(--accent); }
+  h1 { font-size: 26px; font-weight: 600; letter-spacing: 3px; text-shadow: 1px 1px 2px var(--shadow-lt); }
+  .sub { font-size: 13px; color: var(--text-dim); letter-spacing: 2px; margin-top: -8px; }
+  .screen-box {
+    border-radius: 22px;
+    background: var(--surface);
+    box-shadow: 10px 10px 24px var(--shadow-dk), -10px -10px 24px var(--shadow-lt),
+                inset 3px 3px 8px var(--shadow-dk), inset -3px -3px 8px var(--shadow-lt);
+    padding: 14px;
+  }
+  pre#screen {
+    background: #06101e;
+    border-radius: 14px;
+    padding: 10px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 14px;
+    line-height: 1.15;
+    letter-spacing: 0;
+    color: #6ecdf5;
+    white-space: pre;
+    overflow: hidden;
+    width: 640px;
+    max-width: 88vw;
+  }
+  .controls {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: 5px 5px 12px var(--shadow-dk), -5px -5px 12px var(--shadow-lt);
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .btn:hover { color: var(--accent); }
+  .btn:active { box-shadow: inset 4px 4px 10px var(--shadow-dk), inset -4px -4px 10px var(--shadow-lt); color: var(--accent); }
+  .btn.primary { color: #fff; background: linear-gradient(145deg, var(--accent), var(--accent-soft)); }
+  .slider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-dim);
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: 4px 4px 10px var(--shadow-dk), -4px -4px 10px var(--shadow-lt);
+  }
+  input[type="range"] { accent-color: var(--accent); width: 110px; }
+  .tips { font-size: 12.5px; color: var(--text-dim); letter-spacing: 1px; }
+</style>
+</head>
+<body>
+  <a class="back" href="../index.html">← 返回首页</a>
+  <h1>ASCII 立方体</h1>
+  <p class="sub">3D LINE FRAME · STARFIELD</p>
+
+  <div class="screen-box">
+    <pre id="screen"></pre>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary" id="btnToggle">暂停</button>
+    <button class="btn" id="btnSpeed1">正常</button>
+    <div class="slider">速度 <input type="range" id="speed" min="5" max="40" value="20" step="1"> <span id="fpsLabel">20</span> fps</div>
+  </div>
+  <div class="tips">近的棱亮 · 远的棱暗 · 星空缓缓滚动</div>
+
+<script>
+(function () {
+  "use strict";
+  var W = 80, H = 24;
+
+  /* ---------- 3D 立方体（移植自 ascii_cube.py） ---------- */
+  function cubeVertices(size) {
+    var s = size / 2, v = [];
+    for (var x = -1; x <= 1; x += 2)
+      for (var y = -1; y <= 1; y += 2)
+        for (var z = -1; z <= 1; z += 2)
+          v.push([x * s, y * s, z * s]);
+    return v;
+  }
+  var EDGES = [[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]];
+
+  function rotX(p, a) {
+    var c = Math.cos(a), s = Math.sin(a);
+    return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c];
+  }
+  function rotY(p, a) {
+    var c = Math.cos(a), s = Math.sin(a);
+    return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c];
+  }
+  function project(p, dist) {
+    var f = dist / (dist - p[2]);
+    return [p[0] * f, p[1] * f];
+  }
+  function plotLine(grid, x0, y0, x1, y1, ch) {
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    var dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    var sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    var err = dx - dy;
+    while (true) {
+      if (x0 >= 0 && x0 < W && y0 >= 0 && y0 < H) grid[y0][x0] = ch;
+      if (x0 === x1 && y0 === y1) break;
+      var e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x0 += sx; }
+      if (e2 < dx) { err += dx; y0 += sy; }
+    }
+  }
+
+  /* ---------- 星空 ---------- */
+  var STARS = [];
+  (function () {
+    var rnd = function () { // mulberry32 固定种子 20260816，保证每次相同
+      var t = 20260816 >>> 0;
+      return function () {
+        t += 0x6D2B79F5;
+        var r = Math.imul(t ^ (t >>> 15), 1 | t);
+        r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+      };
+    }();
+    var chars = [".", ":", "*", "+"];
+    for (var i = 0; i < 70; i++)
+      STARS.push([(rnd() * W) | 0, (rnd() * H) | 0, chars[(rnd() * 4) | 0], 0.02 + rnd() * 0.10]);
+  })();
+
+  var VERTS = cubeVertices(10);
+  function renderFrame(t) {
+    var ax = t * 1.3, ay = t * 0.9, i, j;
+    var verts = [], proj = [];
+    for (i = 0; i < 8; i++) verts.push(rotY(rotX(VERTS[i], ax), ay));
+    for (i = 0; i < 8; i++) proj.push(project(verts[i], 30));
+    var edgeChars = [];
+    for (i = 0; i < EDGES.length; i++) {
+      var e = EDGES[i];
+      var midz = (verts[e[0]][2] + verts[e[1]][2]) / 2;
+      var ch = midz > 1.5 ? "#" : (midz > -1.5 ? "+" : ".");
+      edgeChars.push([e[0], e[1], ch]);
+    }
+    edgeChars.sort(function (a, b) {
+      return (verts[a[0]][2] + verts[a[1]][2]) - (verts[b[0]][2] + verts[b[1]][2]);
+    });
+    var grid = [];
+    for (j = 0; j < H; j++) { grid.push([]); for (i = 0; i < W; i++) grid[j].push(" "); }
+    for (i = 0; i < STARS.length; i++) {
+      var s = STARS[i];
+      var yy = (s[1] + t * s[3] * H) % H;
+      grid[yy | 0][s[0]] = s[2];
+    }
+    var cx = W >> 1, cy = (H >> 1) - 1;
+    for (i = 0; i < edgeChars.length; i++) {
+      var e2 = edgeChars[i];
+      plotLine(grid, cx + proj[e2[0]][0], cy + proj[e2[0]][1], cx + proj[e2[1]][0], cy + proj[e2[1]][1], e2[2]);
+    }
+    var out = [];
+    for (j = 0; j < H; j++) out.push(grid[j].join(""));
+    return out.join("\n");
+  }
+
+  /* ---------- 动画循环 ---------- */
+  var pre = document.getElementById("screen");
+  var COLORS = { "#": "#6ecdf5", "+": "#3c82c8", ".": "#1e4678",
+                 "*": "#c8e6ff", ":": "#78a0d2" };
+  pre.innerHTML = "";
+
+  function colorize(text) {
+    var esc = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
+    var out = "";
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      var col = COLORS[ch];
+      if (!col || ch === " ") out += esc[ch] || ch;
+      else out += '<span style="color:' + col + '">' + ch + "</span>";
+    }
+    return out;
+  }
+
+  var fps = 20, running = true, frame = 0;
+  var last = 0, acc = 0;
+
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (!running) return;
+    if (!last) last = ts;
+    acc += ts - last;
+    last = ts;
+    var step = 1000 / fps;
+    while (acc >= step) {
+      acc -= step;
+      frame++;
+      pre.innerHTML = colorize(renderFrame(frame / fps));
+    }
+  }
+
+  var btnToggle = document.getElementById("btnToggle");
+  var speed = document.getElementById("speed");
+  var fpsLabel = document.getElementById("fpsLabel");
+
+  btnToggle.addEventListener("click", function () {
+    running = !running;
+    btnToggle.textContent = running ? "暂停" : "继续";
+  });
+  speed.addEventListener("input", function () {
+    fps = parseInt(speed.value, 10);
+    fpsLabel.textContent = fps;
+  });
+  document.getElementById("btnSpeed1").addEventListener("click", function () {
+    speed.value = 20; fps = 20; fpsLabel.textContent = "20";
+  });
+
+  // 立即渲染首帧（不依赖 rAF 时序，任何环境打开即有画面）
+  pre.innerHTML = colorize(renderFrame(0));
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

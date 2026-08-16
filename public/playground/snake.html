@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>贪吃蛇进化版 · 非茗工坊</title>
+<style>
+  :root {
+    --bg: #e6f0fa;
+    --surface: #dbe7f3;
+    --shadow-dk: #b9c9d9;
+    --shadow-lt: #ffffff;
+    --accent: #3389d1;
+    --accent-soft: #7fb8e8;
+    --text: #33506b;
+    --text-dim: #7d95ad;
+    --game-bg: #0d1b2a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Times New Roman", Times, "Source Han Serif SC", "Noto Serif SC", "思源宋体", "Songti SC", "SimSun", serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: var(--text);
+    padding: 28px 16px 40px;
+  }
+  .back {
+    align-self: flex-start;
+    font-size: 14px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: 5px 5px 12px var(--shadow-dk), -5px -5px 12px var(--shadow-lt);
+    transition: color .2s;
+  }
+  .back:hover { color: var(--accent); }
+  h1 {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: var(--text);
+    text-shadow: 1px 1px 2px var(--shadow-lt);
+  }
+  .sub { font-size: 13px; color: var(--text-dim); letter-spacing: 2px; margin-top: -8px; }
+  .stage {
+    position: relative;
+    border-radius: 22px;
+    background: var(--surface);
+    box-shadow: 10px 10px 24px var(--shadow-dk), -10px -10px 24px var(--shadow-lt),
+                inset 3px 3px 8px var(--shadow-dk), inset -3px -3px 8px var(--shadow-lt);
+    padding: 14px;
+  }
+  canvas {
+    display: block;
+    width: min(90vw, 800px);
+    height: auto;
+    border-radius: 14px;
+    background: var(--game-bg);
+    touch-action: none;
+  }
+  .overlay {
+    position: absolute;
+    inset: 14px;
+    border-radius: 14px;
+    background: rgba(13, 27, 42, 0.82);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #d5e8eb;
+    text-align: center;
+    font-size: 20px;
+    letter-spacing: 2px;
+    cursor: pointer;
+  }
+  .overlay small {
+    font-size: 13px;
+    color: #8ba7ae;
+    letter-spacing: 1px;
+    line-height: 1.7;
+  }
+  .overlay .best { color: #ffd166; font-size: 15px; }
+  .hud {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--text);
+    padding: 12px 22px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: 6px 6px 14px var(--shadow-dk), -6px -6px 14px var(--shadow-lt),
+                inset 2px 2px 5px var(--shadow-dk), inset -2px -2px 5px var(--shadow-lt);
+  }
+  .hud b { color: var(--accent); font-weight: 700; }
+  .controls { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: 5px 5px 12px var(--shadow-dk), -5px -5px 12px var(--shadow-lt);
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .btn:hover { color: var(--accent); }
+  .btn:active { box-shadow: inset 4px 4px 10px var(--shadow-dk), inset -4px -4px 10px var(--shadow-lt); color: var(--accent); }
+  .btn.primary { color: #fff; background: linear-gradient(145deg, var(--accent), var(--accent-soft)); }
+  .btn.primary:active { color: #fff; }
+  .tips { font-size: 12.5px; color: var(--text-dim); letter-spacing: 1px; text-align: center; line-height: 1.8; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 12px; color: var(--text-dim); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+  <a class="back" href="../index.html">← 返回首页</a>
+  <h1>贪吃蛇进化版</h1>
+  <p class="sub">SNAKE EVOLVED</p>
+
+  <div class="stage">
+    <canvas id="game" width="800" height="400"></canvas>
+    <div class="overlay" id="overlay">
+      <div id="ovTitle">贪吃蛇进化版</div>
+      <small id="ovDesc">方向键 / WASD 移动<br>点击开始游戏</small>
+      <div class="best" id="ovBest"></div>
+    </div>
+  </div>
+
+  <div class="hud">
+    <span>分数 <b id="score">0</b></span>
+    <span>最高 <b id="best">0</b></span>
+    <span>长度 <b id="len">4</b></span>
+    <span>等级 <b id="level">1</b></span>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:#ffd166"></i>普通 +10</span>
+    <span><i style="background:#ffd700"></i>金色 +50</span>
+    <span><i style="background:#e63946"></i>毒果 -15</span>
+    <span><i style="background:#4a5568"></i>障碍</span>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary" id="btnStart">开始</button>
+    <button class="btn" id="btnPause">暂停</button>
+    <button class="btn" id="btnReset">重置</button>
+    <button class="btn" id="btnAI">AI 演示</button>
+  </div>
+  <div class="tips">每吃 3 个食物升一级 · 速度加快 · 障碍增多 · 最高分自动保存</div>
+
+<script>
+(function () {
+  "use strict";
+  /* ---------- 配置（与终端版一致） ---------- */
+  var W = 40, H = 20, INIT_LEN = 4, CELL = 20;
+  var BASE_INTERVAL = 130, MIN_INTERVAL = 45;
+  var EAT_PER_LEVEL = 3, GOLD_CHANCE = 0.05, POISON_CHANCE = 0.18;
+
+  /* ---------- 游戏核心（移植自 snake.py） ---------- */
+  function Game() {
+    this.reset();
+  }
+  Game.prototype.reset = function () {
+    var cx = W >> 1, cy = H >> 1, i;
+    this.snake = [];
+    for (i = 0; i < INIT_LEN; i++) this.snake.push([cx - i, cy]);
+    this.dir = [1, 0];
+    this.obstacles = [];
+    this.food = null;
+    this.score = 0;
+    this.eaten = 0;
+    this.level = 1;
+    this.alive = true;
+    this.won = false;
+    this.steps = 0;
+    this._placeObstacles();
+    this._placeFood();
+  };
+  Game.prototype._freeCells = function () {
+    var occ = {};
+    var i, k;
+    for (i = 0; i < this.snake.length; i++) occ[this.snake[i][0] + "," + this.snake[i][1]] = 1;
+    for (i = 0; i < this.obstacles.length; i++) occ[this.obstacles[i][0] + "," + this.obstacles[i][1]] = 1;
+    if (this.food) occ[this.food[0] + "," + this.food[1]] = 1;
+    var cells = [];
+    for (k = 0; k < H; k++)
+      for (i = 0; i < W; i++)
+        if (!occ[i + "," + k]) cells.push([i, k]);
+    return cells;
+  };
+  Game.prototype._placeObstacles = function () {
+    var n = Math.min(4 + 2 * (this.level - 1), (W * H) / 12 | 0);
+    var cells = this._freeCells(), i;
+    this.obstacles = [];
+    for (i = 0; i < n && cells.length; i++) {
+      var c = cells.splice((Math.random() * cells.length) | 0, 1)[0];
+      this.obstacles.push(c);
+    }
+  };
+  Game.prototype._placeFood = function () {
+    var cells = this._freeCells();
+    if (!cells.length) { this.won = true; this.food = null; return; }
+    var r = Math.random(), kind;
+    if (r < GOLD_CHANCE) kind = "gold";
+    else if (r < GOLD_CHANCE + POISON_CHANCE) kind = "poison";
+    else kind = "food";
+    this.food = cells[(Math.random() * cells.length) | 0].concat(kind);
+  };
+  Game.prototype.interval = function () {
+    return Math.max(MIN_INTERVAL, BASE_INTERVAL * Math.pow(0.88, this.level - 1));
+  };
+  Game.prototype.step = function (dir) {
+    if (!this.alive || this.won) return null;
+    if (dir) {
+      if (dir[0] + this.dir[0] !== 0 || dir[1] + this.dir[1] !== 0) this.dir = dir;
+    }
+    var head = this.snake[0];
+    var nh = [head[0] + this.dir[0], head[1] + this.dir[1]];
+    this.steps++;
+    var events = [];
+    if (nh[0] < 0 || nh[0] >= W || nh[1] < 0 || nh[1] >= H) {
+      this.alive = false; events.push("撞墙"); return events;
+    }
+    if (this._inObstacles(nh)) {
+      this.alive = false; events.push("撞障碍"); return events;
+    }
+    var willGrow = this.food && nh[0] === this.food[0] && nh[1] === this.food[1] && this.food[2] !== "poison";
+    var body = willGrow ? this.snake : this.snake.slice(0, -1);
+    for (var i = 0; i < body.length; i++)
+      if (body[i][0] === nh[0] && body[i][1] === nh[1]) {
+        this.alive = false; events.push("撞到自己"); return events;
+      }
+    this.snake.unshift(nh);
+    if (this.food && nh[0] === this.food[0] && nh[1] === this.food[1]) {
+      var kind = this.food[2];
+      if (kind === "food") { this.score += 10; this.eaten++; events.push("吃普通 +10"); }
+      else if (kind === "gold") { this.score += 50; this.eaten++; events.push("吃金色 +50!"); }
+      else {
+        this.score = Math.max(0, this.score - 15);
+        if (this.snake.length > 1) this.snake.pop();
+        events.push("吃毒果 -15");
+      }
+      if (this.eaten % EAT_PER_LEVEL === 0) { this.level++; events.push("升级 Lv" + this.level); }
+      this.food = null;
+      this._placeFood();
+      if (this.won) events.push("填满全图，通关！");
+    } else {
+      this.snake.pop();
+    }
+    return events;
+  };
+  Game.prototype._inObstacles = function (c) {
+    for (var i = 0; i < this.obstacles.length; i++)
+      if (this.obstacles[i][0] === c[0] && this.obstacles[i][1] === c[1]) return true;
+    return false;
+  };
+  /* ---------- AI：BFS 寻路（移植自 snake.py） ---------- */
+  Game.prototype.aiDirection = function () {
+    var head = this.snake[0], i;
+    if (this.food) {
+      var path = this._bfs(head, [this.food[0], this.food[1]]);
+      if (path && path.length > 1)
+        return [path[1][0] - head[0], path[1][1] - head[1]];
+    }
+    var dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (i = 0; i < dirs.length; i++) {
+      var n = [head[0] + dirs[i][0], head[1] + dirs[i][1]];
+      if (this._safe(n)) return dirs[i];
+    }
+    return [0, 0];
+  };
+  Game.prototype._safe = function (c) {
+    if (c[0] < 0 || c[0] >= W || c[1] < 0 || c[1] >= H) return false;
+    if (this._inObstacles(c)) return false;
+    var tail = this.snake[this.snake.length - 1];
+    for (var i = 0; i < this.snake.length - 1; i++)
+      if (this.snake[i][0] === c[0] && this.snake[i][1] === c[1]) return c[0] === tail[0] && c[1] === tail[1] ? true : false;
+    return true;
+  };
+  Game.prototype._bfs = function (start, goal) {
+    if (start[0] === goal[0] && start[1] === goal[1]) return [start];
+    var occ = {};
+    var i;
+    for (i = 0; i < this.snake.length - 1; i++) occ[this.snake[i][0] + "," + this.snake[i][1]] = 1;
+    for (i = 0; i < this.obstacles.length; i++) occ[this.obstacles[i][0] + "," + this.obstacles[i][1]] = 1;
+    var prev = {};
+    var key = start[0] + "," + start[1];
+    prev[key] = null;
+    var q = [start];
+    var qi = 0;
+    while (qi < q.length) {
+      var cur = q[qi++];
+      var ck = cur[0] + "," + cur[1];
+      if (cur[0] === goal[0] && cur[1] === goal[1]) {
+        var path = [];
+        while (ck) { path.push(cur); var p = prev[ck]; if (!p) break; cur = p; ck = cur[0] + "," + cur[1]; }
+        return path.reverse();
+      }
+      var dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (i = 0; i < dirs.length; i++) {
+        var n = [cur[0] + dirs[i][0], cur[1] + dirs[i][1]];
+        var nk = n[0] + "," + n[1];
+        if (n[0] >= 0 && n[0] < W && n[1] >= 0 && n[1] < H && !occ[nk] && !(nk in prev)) {
+          prev[nk] = cur;
+          q.push(n);
+        }
+      }
+    }
+    return null;
+  };
+
+  /* ---------- 渲染 ---------- */
+  var canvas = document.getElementById("game");
+  var ctx = canvas.getContext("2d");
+  var C = {
+    bg: "#0d1b2a", grid: "#142a3f",
+    head: "#66ccff", body: "#3389d1",
+    food: "#ffd166", gold: "#ffd700", poison: "#e63946", wall: "#4a5568"
+  };
+
+  function render(g) {
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = C.grid;
+    ctx.lineWidth = 1;
+    var x, y;
+    for (x = 1; x < W; x++) { ctx.beginPath(); ctx.moveTo(x * CELL + .5, 0); ctx.lineTo(x * CELL + .5, canvas.height); ctx.stroke(); }
+    for (y = 1; y < H; y++) { ctx.beginPath(); ctx.moveTo(0, y * CELL + .5); ctx.lineTo(canvas.width, y * CELL + .5); ctx.stroke(); }
+    for (y = 0; y < H; y++)
+      for (x = 0; x < W; x++) {
+        if (g._inObstacles([x, y])) {
+          ctx.fillStyle = C.wall;
+          ctx.beginPath();
+          ctx.roundRect(x * CELL + 3, y * CELL + 3, CELL - 6, CELL - 6, 4);
+          ctx.fill();
+        }
+      }
+    var i;
+    for (i = 0; i < g.snake.length; i++) {
+      ctx.fillStyle = i === 0 ? C.head : C.body;
+      ctx.beginPath();
+      ctx.roundRect(g.snake[i][0] * CELL + 2, g.snake[i][1] * CELL + 2, CELL - 4, CELL - 4, 6);
+      ctx.fill();
+    }
+    if (g.food) {
+      ctx.fillStyle = C[g.food[2]];
+      var cx = g.food[0] * CELL + CELL / 2, cy = g.food[1] * CELL + CELL / 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, CELL / 3, 0, Math.PI * 2);
+      ctx.fill();
+      if (g.food[2] === "gold") {
+        ctx.strokeStyle = "rgba(255,215,0,.5)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, CELL / 2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  }
+
+  /* ---------- 主循环 ---------- */
+  var game = new Game();
+  var state = "idle";   // idle | running | paused | over | won
+  var timer = null, aiTimer = null, best = 0, aiMode = false;
+
+  var elScore = document.getElementById("score"), elBest = document.getElementById("best"),
+      elLen = document.getElementById("len"), elLevel = document.getElementById("level"),
+      overlay = document.getElementById("overlay"),
+      ovTitle = document.getElementById("ovTitle"), ovDesc = document.getElementById("ovDesc"),
+      ovBest = document.getElementById("ovBest");
+
+  try { best = parseInt(localStorage.getItem("snake-best") || "0", 10) || 0; } catch (e) {}
+
+  function saveBest() {
+    if (game.score > best) {
+      best = game.score;
+      try { localStorage.setItem("snake-best", String(best)); } catch (e) {}
+    }
+  }
+
+  function hud() {
+    elScore.textContent = game.score;
+    elBest.textContent = best;
+    elLen.textContent = game.snake.length;
+    elLevel.textContent = game.level;
+  }
+
+  function showOverlay(title, desc) {
+    ovTitle.textContent = title;
+    ovDesc.innerHTML = desc;
+    ovBest.textContent = best > 0 ? "最高分 " + best : "";
+    overlay.style.display = "flex";
+  }
+  function hideOverlay() { overlay.style.display = "none"; }
+
+  function tick() {
+    if (state !== "running") return;
+    game.step();
+    hud();
+    render(game);
+    if (!game.alive) {
+      state = "over";
+      saveBest(); hud();
+      showOverlay("游戏结束", "得分 " + game.score + " · 长度 " + game.snake.length + "<br>点击重新开始");
+      clearInterval(timer); timer = null;
+    } else if (game.won) {
+      state = "won";
+      saveBest(); hud();
+      showOverlay("通关！", "填满了整个地图，太强了<br>点击再来一局");
+      clearInterval(timer); timer = null;
+    }
+  }
+
+  function startGame() {
+    hideOverlay();
+    state = "running";
+    aiMode = false;
+    if (timer) clearInterval(timer);
+    timer = setInterval(tick, game.interval());
+  }
+
+  function startAI() {
+    hideOverlay();
+    state = "running";
+    aiMode = true;
+    if (timer) clearInterval(timer);
+    aiTimer = setInterval(function () {
+      game.step(game.aiDirection());
+      hud();
+      render(game);
+      if (!game.alive || game.won) {
+        clearInterval(aiTimer); aiTimer = null; state = "over";
+        saveBest(); hud();
+        showOverlay("AI 演示结束", "得分 " + game.score + " · 长度 " + game.snake.length + " · 等级 " + game.level + "<br>点击手动开始");
+      }
+    }, 80);
+  }
+
+  function stopLoop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (aiTimer) { clearInterval(aiTimer); aiTimer = null; }
+  }
+
+  function resetGame() {
+    stopLoop();
+    game.reset();
+    state = "idle";
+    hud(); render(game);
+    showOverlay("贪吃蛇进化版", "方向键 / WASD 移动<br>点击开始游戏");
+  }
+
+  /* ---------- 输入 ---------- */
+  var DIRS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+               w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0], W: [0, -1], S: [0, 1], A: [-1, 0], D: [1, 0] };
+  document.addEventListener("keydown", function (e) {
+    var d = DIRS[e.key];
+    if (!d) {
+      if (e.key === " " || e.key === "Enter") { e.preventDefault(); if (state === "running" || aiMode) return; startGame(); }
+      return;
+    }
+    e.preventDefault();
+    if (state !== "running" || aiMode) return;
+    game.dir = d;
+  });
+
+  var tx = 0, ty = 0;
+  canvas.addEventListener("touchstart", function (e) {
+    tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+  }, { passive: true });
+  canvas.addEventListener("touchend", function (e) {
+    if (state !== "running" || aiMode) return;
+    var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+    if (Math.abs(dx) > Math.abs(dy)) game.dir = [dx > 0 ? 1 : -1, 0];
+    else game.dir = [0, dy > 0 ? 1 : -1];
+  }, { passive: true });
+
+  overlay.addEventListener("click", function () {
+    if (state === "idle" || state === "over" || state === "won") startGame();
+  });
+
+  document.getElementById("btnStart").addEventListener("click", function () { if (!aiMode) startGame(); });
+  document.getElementById("btnPause").addEventListener("click", function () {
+    if (aiMode || state !== "running") return;
+    if (timer) { clearInterval(timer); timer = null; state = "paused"; showOverlay("已暂停", "点击继续"); }
+    else { hideOverlay(); state = "running"; timer = setInterval(tick, game.interval()); }
+  });
+  document.getElementById("btnReset").addEventListener("click", resetGame);
+  document.getElementById("btnAI").addEventListener("click", function () {
+    stopLoop(); game.reset(); startAI();
+  });
+
+  /* ---------- 初始画面 ---------- */
+  if (!ctx.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+      r = Math.min(r, w / 2, h / 2);
+      this.moveTo(x + r, y);
+      this.arcTo(x + w, y, x + w, y + h, r);
+      this.arcTo(x + w, y + h, x, y + h, r);
+      this.arcTo(x, y + h, x, y, r);
+      this.arcTo(x, y, x + w, y, r);
+      this.closePath();
+    };
+  }
+  hud(); render(game);
+  showOverlay("贪吃蛇进化版", "方向键 / WASD 移动<br>点击开始游戏 · 或试试 AI 演示");
+})();
+</script>
+</body>
+</html>

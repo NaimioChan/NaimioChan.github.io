@@ -147,6 +147,13 @@ main {
   padding: 7px 20px;
   margin-left: 2px;
 }
+.section-sub {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  letter-spacing: 0.12em;
+  margin: -20px 0 26px;
+  padding-left: 2px;
+}
 
 @media (max-width: 640px) {
   .section { padding: 64px 0 12px; }
