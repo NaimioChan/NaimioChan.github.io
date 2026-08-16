@@ -140,6 +140,17 @@
   .check input { accent-color: var(--accent); }
   .status { font-size: 12.5px; color: var(--text-dim); letter-spacing: 1px; min-height: 18px; text-align: center; }
   .hidden { display: none !important; }
+  /* 视频源元素：屏幕外定位而非 display:none —— iOS Safari 对隐藏 video
+     有已知的不触发 loadedmetadata 问题，移出视口是最稳妥的「不可见但可加载」 */
+  video#srcVideo {
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    width: 2px;
+    height: 2px;
+    opacity: 0;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
@@ -189,7 +200,7 @@
   <p class="status" id="status">选择「视频转码」，导入本地视频即可生成 ASCII 动画</p>
 
   <input type="file" id="fileInput" accept="video/*" class="hidden">
-  <video id="srcVideo" loop muted playsinline class="hidden"></video>
+  <video id="srcVideo" loop muted playsinline></video>
 
 <script>
 (function () {
@@ -344,6 +355,7 @@
   var last = 0, acc = 0;
   function cubeLoop(ts) {
     requestAnimationFrame(cubeLoop);
+    if (mode !== "cube") return;   // 视频模式下停止绘制立方体，避免与视频帧交替覆盖
     if (!cubeRunning) return;
     if (!last) last = ts;
     acc += ts - last;
@@ -461,16 +473,8 @@
     var f = fileInput.files && fileInput.files[0];
     if (!f) return;
     videoName = f.name;
-    video.src = URL.createObjectURL(f);
-    video.load();
-    videoLoaded = false;
-    videoPlaying = false;
-    btnVideoPlay.textContent = "播放";
-    btnVideoPlay.disabled = true;
-    btnVideoRestart.disabled = true;
-    btnExportTxt.disabled = true;
-    btnExportGif.disabled = true;
-    setStatus("加载中…");
+    // 事件监听必须先于 load() 注册：load() 触发的异步错误事件若在绑定
+    // 之前到达会丢失（移动端尤其明显），导致「导入失败」误报。
     video.onloadedmetadata = function () {
       videoLoaded = true;
       autoRowsFlag = true;
@@ -493,8 +497,28 @@
     };
     video.onerror = function () {
       videoLoaded = false;
-      setStatus("视频加载失败，请换一个文件试试");
+      var code = video.error ? video.error.code : 0;
+      if (code === 4) {
+        // MEDIA_ERR_SRC_NOT_SUPPORTED：格式/编码不支持（移动端最常见）
+        setStatus("该视频格式当前浏览器不支持（HEVC/VP9 等编码在部分手机浏览器无法解码），建议转成 H.264 MP4 再导入");
+      } else if (code === 2) {
+        setStatus("视频数据读取失败（文件可能已损坏或未完整下载），请换一个文件试试");
+      } else if (code === 3) {
+        setStatus("视频解码失败，文件可能已损坏，请换一个文件试试");
+      } else {
+        setStatus("视频加载失败，请换一个文件试试");
+      }
     };
+    video.src = URL.createObjectURL(f);
+    video.load();
+    videoLoaded = false;
+    videoPlaying = false;
+    btnVideoPlay.textContent = "播放";
+    btnVideoPlay.disabled = true;
+    btnVideoRestart.disabled = true;
+    btnExportTxt.disabled = true;
+    btnExportGif.disabled = true;
+    setStatus("加载中…");
   });
 
   btnVideoPlay.addEventListener("click", function () {
