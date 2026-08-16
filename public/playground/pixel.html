@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>像素工坊 · 像素画编辑器</title>
+<style>
+  :root{
+    --bg:#e6f0fa; --surface:#dbe7f3;
+    --shadow-dk:#b9c9d9; --shadow-lt:#ffffff;
+    --accent:#3389d1; --accent-soft:#7fb8e8;
+    --text:#33506b; --text-dim:#7d95ad;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:"Times New Roman",Times,"Source Han Serif SC","Noto Serif SC","思源宋体","Songti SC","SimSun",serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px;
+  }
+  .card{
+    background:var(--surface);border-radius:26px;padding:24px 28px;
+    box-shadow:8px 8px 20px var(--shadow-dk), -8px -8px 20px var(--shadow-lt);
+    display:flex;gap:24px;align-items:flex-start;
+  }
+  h1{font-size:19px;letter-spacing:4px;color:var(--accent);}
+  .sub{font-size:11px;color:var(--text-dim);letter-spacing:1px;margin:2px 0 14px;}
+  #boardWrap{background:var(--bg);border-radius:18px;padding:14px;
+    box-shadow:inset 4px 4px 10px var(--shadow-dk), inset -4px -4px 10px var(--shadow-lt);}
+  canvas#board{
+    display:block;width:448px;height:448px;image-rendering:pixelated;image-rendering:crisp-edges;
+    border-radius:8px;background:#fff;cursor:crosshair;
+  }
+  .side{width:220px;display:flex;flex-direction:column;gap:14px;}
+  .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+  .tool{
+    height:38px;border:none;border-radius:12px;background:var(--surface);color:var(--text-dim);
+    font-size:15px;cursor:pointer;font-family:inherit;
+    box-shadow:5px 5px 10px var(--shadow-dk), -5px -5px 10px var(--shadow-lt);
+    transition:color .12s;
+  }
+  .tool:hover{color:var(--accent);}
+  .tool.on{color:var(--accent);box-shadow:inset 3px 3px 8px var(--shadow-dk), inset -3px -3px 8px var(--shadow-lt);}
+  .palette{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;}
+  .sw{aspect-ratio:1;border-radius:9px;cursor:pointer;border:2px solid transparent;
+    box-shadow:2px 2px 5px var(--shadow-dk), -2px -2px 5px var(--shadow-lt);}
+  .sw.on{border-color:var(--accent);box-shadow:0 0 10px rgba(51,137,209,.55);}
+  .lbl{font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:5px;}
+  .row{display:flex;gap:7px;align-items:center;}
+  .btn{
+    flex:1;padding:9px 0;border:none;border-radius:12px;background:var(--surface);color:var(--text);
+    font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;font-family:inherit;
+    box-shadow:5px 5px 10px var(--shadow-dk), -5px -5px 10px var(--shadow-lt);
+    transition:color .12s;
+  }
+  .btn:hover{color:var(--accent);}
+  .btn:active{box-shadow:inset 3px 3px 8px var(--shadow-dk), inset -3px -3px 8px var(--shadow-lt);}
+  .btn.primary{color:#fff;background:linear-gradient(145deg,var(--accent),var(--accent-soft));
+    box-shadow:4px 4px 10px rgba(51,137,209,.35), -4px -4px 10px rgba(255,255,255,.6);}
+  .btn.primary:active{color:#fff;}
+  .sz{display:flex;align-items:center;gap:8px;}
+  input[type=range]{-webkit-appearance:none;flex:1;height:6px;border-radius:3px;background:var(--bg);
+    box-shadow:inset 2px 2px 5px var(--shadow-dk), inset -2px -2px 5px var(--shadow-lt);outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:linear-gradient(145deg,var(--accent-soft),var(--accent));box-shadow:0 0 8px rgba(51,137,209,.5);cursor:pointer;}
+  input[type=color]{width:100%;height:34px;border:none;border-radius:10px;background:var(--bg);cursor:pointer;padding:2px;
+    box-shadow:inset 2px 2px 5px var(--shadow-dk), inset -2px -2px 5px var(--shadow-lt);}
+  .info{font-size:11px;color:var(--text-dim);letter-spacing:1px;}
+  .info b{color:var(--text);}
+  .hint{font-size:10px;color:var(--text-dim);line-height:1.6;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+<a class="back" href="../index.html" style="position:absolute;top:16px;left:16px;font-size:13px;color:var(--muted);text-decoration:none;letter-spacing:1px;z-index:9;">← 返回首页</a>
+<div class="card">
+  <div>
+    <h1>像素工坊</h1>
+    <div class="sub">PIXEL FORGE · 像素画编辑器</div>
+    <div id="boardWrap"><canvas id="board" width="32" height="32"></canvas></div>
+  </div>
+  <div class="side">
+    <div>
+      <div class="lbl">画布尺寸</div>
+      <div class="tools" id="sizeBtns">
+        <button class="tool" data-size="16" title="16×16">16</button>
+        <button class="tool on" data-size="32" title="32×32">32</button>
+        <button class="tool" data-size="48" title="48×48">48</button>
+        <button class="tool" data-size="64" title="64×64">64</button>
+      </div>
+    </div>
+    <div>
+      <div class="lbl">工具</div>
+      <div class="tools">
+        <button class="tool on" data-tool="pen" title="铅笔">✏️</button>
+        <button class="tool" data-tool="erase" title="橡皮">🧽</button>
+        <button class="tool" data-tool="pick" title="取色">💉</button>
+        <button class="tool" data-tool="fill" title="填充">🪣</button>
+      </div>
+    </div>
+    <div>
+      <div class="lbl">调色板</div>
+      <div class="palette" id="pal"></div>
+    </div>
+    <div>
+      <div class="lbl">自定义颜色</div>
+      <input type="color" id="custom" value="#3389d1">
+    </div>
+    <div>
+      <div class="lbl">笔刷大小 <span id="szVal" style="color:var(--accent);">1</span></div>
+      <div class="sz"><input type="range" id="size" min="1" max="8" value="1"></div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btnSave">💾 导出 PNG</button>
+      <button class="btn" id="btnClear">清空</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="btnUndo">↩ 撤销</button>
+      <button class="btn" id="btnCopy">⧉ 复制到剪贴板</button>
+    </div>
+    <div class="info">坐标 <b id="pos">—</b> · 画布 <b id="curSize">32×32</b> · 颜色 <b id="curColor" style="color:#3389d1;">#3389d1</b></div>
+    <div class="hint">左键绘制 · 右键擦除 · 按住拖动连续画<br>取色：点击画布已有颜色（或按 I）</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 工具 ============ */
+const $ = id => document.getElementById(id);
+const SIZES=[16,32,48,64];
+let N=32;
+const cv=$('board'), ctx=cv.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+const PALETTE=['#3389d1','#6ec3f0','#dff3ff','#0d1b2a','#5a7088','#9fe8c0','#f2e6a0','#f28ba0',
+               '#e0e6f0','#8aa0b8','#2a3a50','#7fb8e8','#f0a868','#c06a3c','#7ac8a0','#3c7a68'];
+let grid=Array.from({length:N},()=>Array(N).fill(null)); // null=透明
+let tool='pen', cur=PALETTE[0], brush=1;
+let drawing=false;
+const undoStack=[], UNDO_MAX=60;
+
+/* 渲染：主 canvas 只做显示，导出永远从 grid 重建（避免棋盘底纹污染） */
+function render(){
+  const px=ctx.createImageData(N,N);
+  const d=px.data;
+  for(let y=0;y<N;y++){
+    for(let x=0;x<N;x++){
+      const c=grid[y][x];
+      const i=(y*N+x)*4;
+      if(c){
+        d[i]=parseInt(c.slice(1,3),16);
+        d[i+1]=parseInt(c.slice(3,5),16);
+        d[i+2]=parseInt(c.slice(5,7),16);
+        d[i+3]=255;
+      } else { d[i+3]=0; }
+    }
+  }
+  ctx.clearRect(0,0,N,N);
+  ctx.putImageData(px,0,0);
+  drawChecker();
+}
+function drawChecker(){
+  // 棋盘底纹表示透明区（只画到显示 canvas 上；导出用 exportCanvas 不受影响）
+  const off=document.createElement('canvas'); off.width=N; off.height=N;
+  const octx=off.getContext('2d');
+  const im=octx.createImageData(N,N); const d=im.data;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    if(grid[y][x]) continue;
+    const i=(y*N+x)*4;
+    const v=((x>>1)+(y>>1))%2===0? 226:238; // 亮色棋盘
+    d[i]=v;d[i+1]=v+2;d[i+2]=v+6;d[i+3]=255;
+  }
+  octx.putImageData(im,0,0);
+  ctx.drawImage(off,0,0);
+}
+
+/* 撤销快照 */
+function snap(){ undoStack.push(JSON.stringify(grid)); if(undoStack.length>UNDO_MAX) undoStack.shift(); }
+function undo(){
+  if(!undoStack.length) return;
+  grid=JSON.parse(undoStack.pop());
+  render(); updateInfo();
+}
+
+/* 像素操作 */
+function setPx(x,y,color){
+  if(x<0||y<0||x>=N||y>=N) return;
+  grid[y][x]=color;
+}
+function applyBrush(x,y,color){
+  const r=Math.floor((brush-1)/2);
+  for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+    if(dx*dx+dy*dy<=r*r+ (brush%2? 0:0.5)) setPx(x+dx,y+dy,color);
+  }
+}
+function floodFill(sx,sy,color){
+  const target=grid[sy][sx];
+  if(target===color) return;
+  const st=[[sx,sy]];
+  while(st.length){
+    const [x,y]=st.pop();
+    if(x<0||y<0||x>=N||y>=N) continue;
+    if(grid[y][x]!==target) continue;
+    grid[y][x]=color;
+    st.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
+  }
+}
+
+/* 画布事件（坐标换算：显示 448px / 数据 N px） */
+function evPos(e){
+  const r=cv.getBoundingClientRect();
+  const sx=(e.clientX-r.left)/r.width, sy=(e.clientY-r.top)/r.height;
+  return [Math.floor(sx*N), Math.floor(sy*N)];
+}
+cv.addEventListener('mousedown',e=>{
+  e.preventDefault();
+  const [x,y]=evPos(e);
+  snap();
+  const color=e.button===2? null:cur;
+  if(tool==='pick'){ cur=grid[y][x]||'#3389d1'; syncCur(); updateInfo(); return; }
+  if(tool==='fill'){ if(color!==null) floodFill(x,y,color); }
+  else { applyBrush(x,y,color); drawing=true; }
+  render(); updateInfo();
+});
+cv.addEventListener('mousemove',e=>{
+  const [x,y]=evPos(e);
+  updatePos(x,y);
+  if(drawing && tool!=='fill' && tool!=='pick'){
+    applyBrush(x,y,e.buttons===2?null:cur);
+    render();
+  }
+});
+window.addEventListener('mouseup',()=>drawing=false);
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+
+/* 快捷键 */
+document.addEventListener('keydown',e=>{
+  if(e.code==='KeyI'){ tool='pick'; syncTool(); }
+  if(e.code==='KeyB'){ tool='pen'; syncTool(); }
+  if(e.code==='KeyE'){ tool='erase'; syncTool(); }
+  if(e.code==='KeyG'){ tool='fill'; syncTool(); }
+  if(e.code==='KeyZ' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); undo(); }
+});
+
+/* UI */
+function syncTool(){ document.querySelectorAll('.tool[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===tool)); }
+document.querySelectorAll('.tool[data-tool]').forEach(b=>b.onclick=()=>{ tool=b.dataset.tool; syncTool(); });
+function buildPal(){
+  const el=$('pal'); el.innerHTML='';
+  PALETTE.forEach(c=>{
+    const s=document.createElement('div');
+    s.className='sw'+(c===cur?' on':'');
+    s.style.background=c;
+    s.onclick=()=>{ cur=c; syncCur(); };
+    el.appendChild(s);
+  });
+}
+function syncCur(){
+  document.querySelectorAll('.sw').forEach((s,i)=>s.classList.toggle('on',PALETTE[i]===cur));
+  $('custom').value=cur;
+  $('curColor').textContent=cur; $('curColor').style.color=cur;
+}
+$('custom').oninput=e=>{ cur=e.target.value; syncCur(); };
+$('size').oninput=e=>{ brush=+e.target.value; $('szVal').textContent=brush; };
+$('btnClear').onclick=()=>{ snap(); grid=Array.from({length:N},()=>Array(N).fill(null)); render(); updateInfo(); };
+$('btnUndo').onclick=undo;
+$('btnSave').onclick=savePng;
+$('btnCopy').onclick=copyClip;
+
+/* 画布尺寸切换 */
+function setSize(n){
+  N=n;
+  grid=Array.from({length:N},()=>Array(N).fill(null));
+  undoStack.length=0;
+  cv.width=N; cv.height=N; // 逻辑尺寸跟随；显示由 CSS 448px 放大
+  $('curSize').textContent=N+'×'+N;
+  document.querySelectorAll('#sizeBtns .tool').forEach(b=>b.classList.toggle('on',+b.dataset.size===N));
+  render(); updateInfo();
+}
+document.querySelectorAll('#sizeBtns .tool').forEach(b=>b.onclick=()=>setSize(+b.dataset.size));
+
+function updatePos(x,y){ $('pos').textContent=(x>=0&&y>=0)? (x+','+y):'—'; }
+function updateInfo(){ $('pos').textContent='—'; }
+
+/* 导出：从 grid 重建干净像素（不含棋盘底纹） */
+function exportCanvas(){
+  const c=document.createElement('canvas'); c.width=N; c.height=N;
+  const cctx=c.getContext('2d');
+  const im=cctx.createImageData(N,N); const d=im.data;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const col=grid[y][x];
+    const i=(y*N+x)*4;
+    if(col){
+      d[i]=parseInt(col.slice(1,3),16);
+      d[i+1]=parseInt(col.slice(3,5),16);
+      d[i+2]=parseInt(col.slice(5,7),16);
+      d[i+3]=255;
+    }
+  }
+  cctx.putImageData(im,0,0);
+  return c;
+}
+function savePng(){
+  const c=exportCanvas();
+  const a=document.createElement('a');
+  a.download='pixel-art-'+N+'x'+N+'-'+Date.now()+'.png';
+  a.href=c.toDataURL('image/png');
+  a.click();
+}
+function copyClip(){
+  const c=exportCanvas();
+  c.toBlob(b=>{
+    if(b && navigator.clipboard && navigator.clipboard.write){
+      navigator.clipboard.write([new ClipboardItem({'image/png':b})]).then(()=>alert('已复制到剪贴板'));
+    } else alert('当前环境不支持剪贴板写图片');
+  },'image/png');
+}
+
+/* 演示模式：预画一幅"深海水母"示例便于截图 */
+function demoArt(){
+  snap();
+  const set=(x,y,c)=>{ if(x>=0&&y>=0&&x<N&&y<N) grid[y][x]=c; };
+  const A='#6ec3f0', B='#3389d1', C='#dff3ff', D='#9fe8c0', E='#f2e6a0', K='#0d1b2a';
+  // 背景波浪
+  for(let x=0;x<N;x++){
+    for(let y=0;y<N;y++){
+      const wave=Math.sin(x/3.2)*2.2+Math.sin(x/1.7+2)*1.4;
+      if(y>19+wave) grid[y][x]= (y%5===0)? B:A;
+    }
+  }
+  // 水母伞
+  for(let y=4;y<=13;y++){
+    const w=Math.round(Math.sin((y-4)/9*Math.PI)*5.2);
+    for(let x=16-w;x<=16+w;x++) set(x,y, (x+y)%3? A:C);
+  }
+  // 伞顶高光
+  for(let x=13;x<=19;x++) set(x,4,(x%2)? C:D);
+  // 触手
+  for(let i=-3;i<=3;i++){
+    let x=16+i*2;
+    for(let y=13;y<=24;y++){ set(x,y,B); set(x+((y%3===0)?1:0),y,E); }
+  }
+  // 泡泡
+  const bubbles=[[4,10],[6,16],[27,8],[25,20],[30,26],[3,26]];
+  bubbles.forEach(([x,y])=>{ set(x,y,C); set(x+1,y+1,D); });
+  // 底部小鱼
+  for(let x=7;x<=13;x++){ set(x,27,B); }
+  set(6,27,B);set(6,26,B); set(14,27,B);set(14,26,B); set(10,28,E);
+  cur=A; syncCur();
+  render();
+}
+
+if(new URLSearchParams(location.search).get('demo')) window.addEventListener('load',()=>setTimeout(demoArt,200));
+
+/* 启动 */
+buildPal(); syncCur(); render();
+</script>
+</body>
+</html>
