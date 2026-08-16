@@ -15,7 +15,7 @@
     --text: #33506b;
     --text-dim: #7d95ad;
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     font-family: "Times New Roman", Times, "Source Han Serif SC", "Noto Serif SC", "思源宋体", "Songti SC", "SimSun", serif;
     background: var(--bg);
@@ -47,20 +47,18 @@
     box-shadow: 10px 10px 24px var(--shadow-dk), -10px -10px 24px var(--shadow-lt),
                 inset 3px 3px 8px var(--shadow-dk), inset -3px -3px 8px var(--shadow-lt);
     padding: 14px;
+    /* 宽度精确适配 body 内容区(视口-左右padding)，任何屏宽都不溢出且居中 */
+    width: min(508px, calc(100vw - 32px));
+    max-width: 96vw;
+    margin: 0 auto;
   }
-  pre#screen {
+  /* canvas 绘制 ASCII：内部分辨率 480x240，CSS 等比缩放，窄屏完整居中 */
+  canvas#screen {
+    display: block;
+    width: 100%;
+    height: auto;
     background: #06101e;
     border-radius: 14px;
-    padding: 10px;
-    font-family: Consolas, "Courier New", monospace;
-    font-size: 14px;
-    line-height: 1.15;
-    letter-spacing: 0;
-    color: #6ecdf5;
-    white-space: pre;
-    overflow: hidden;
-    width: 640px;
-    max-width: 88vw;
   }
   .controls {
     display: flex;
@@ -107,7 +105,7 @@
   <p class="sub">3D LINE FRAME · STARFIELD</p>
 
   <div class="screen-box">
-    <pre id="screen"></pre>
+    <canvas id="screen" width="480" height="240" aria-label="ASCII 立方体动画"></canvas>
   </div>
 
   <div class="controls">
@@ -210,21 +208,25 @@
   }
 
   /* ---------- 动画循环 ---------- */
-  var pre = document.getElementById("screen");
+  var cv = document.getElementById("screen");
+  var cctx = cv.getContext("2d");
   var COLORS = { "#": "#6ecdf5", "+": "#3c82c8", ".": "#1e4678",
                  "*": "#c8e6ff", ":": "#78a0d2" };
-  pre.innerHTML = "";
+  var CW = 6, CH = 10;               // 字符单元：480x240 = 80x24 网格
+  cctx.font = "10px Consolas, 'Courier New', monospace";
+  cctx.textBaseline = "top";
 
-  function colorize(text) {
-    var esc = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
-    var out = "";
+  function drawFrame(text) {
+    cctx.fillStyle = "#06101e";
+    cctx.fillRect(0, 0, cv.width, cv.height);
     for (var i = 0; i < text.length; i++) {
       var ch = text[i];
+      if (ch === "\n" || ch === " ") continue;
       var col = COLORS[ch];
-      if (!col || ch === " ") out += esc[ch] || ch;
-      else out += '<span style="color:' + col + '">' + ch + "</span>";
+      if (!col) continue;
+      cctx.fillStyle = col;
+      cctx.fillText(ch, (i % (W + 1)) * CW, ((i / (W + 1)) | 0) * CH);
     }
-    return out;
   }
 
   var fps = 20, running = true, frame = 0;
@@ -240,7 +242,7 @@
     while (acc >= step) {
       acc -= step;
       frame++;
-      pre.innerHTML = colorize(renderFrame(frame / fps));
+      drawFrame(renderFrame(frame / fps));
     }
   }
 
@@ -261,7 +263,7 @@
   });
 
   // 立即渲染首帧（不依赖 rAF 时序，任何环境打开即有画面）
-  pre.innerHTML = colorize(renderFrame(0));
+  drawFrame(renderFrame(0));
   requestAnimationFrame(loop);
 })();
 </script>

@@ -16,7 +16,7 @@
     --text-dim: #7d95ad;
     --game-bg: #0d1b2a;
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     font-family: "Times New Roman", Times, "Source Han Serif SC", "Noto Serif SC", "思源宋体", "Songti SC", "SimSun", serif;
     background: var(--bg);
@@ -121,6 +121,40 @@
   .btn.primary { color: #fff; background: linear-gradient(145deg, var(--accent), var(--accent-soft)); }
   .btn.primary:active { color: #fff; }
   .tips { font-size: 12.5px; color: var(--text-dim); letter-spacing: 1px; text-align: center; line-height: 1.8; }
+  /* 移动端虚拟方向键（桌面隐藏） */
+  .dpad {
+    display: none;
+    grid-template-columns: repeat(3, 58px);
+    grid-template-rows: repeat(3, 58px);
+    gap: 8px;
+    justify-content: center;
+    user-select: none;
+  }
+  .dbtn {
+    border: none;
+    border-radius: 16px;
+    font-size: 20px;
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: 5px 5px 12px var(--shadow-dk), -5px -5px 12px var(--shadow-lt);
+    cursor: pointer;
+    touch-action: manipulation;
+    display: grid;
+    place-items: center;
+    line-height: 1;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .dbtn:active {
+    box-shadow: inset 4px 4px 10px var(--shadow-dk), inset -4px -4px 10px var(--shadow-lt);
+    color: var(--accent);
+  }
+  .dbtn.up { grid-area: 1 / 2; }
+  .dbtn.left { grid-area: 2 / 1; }
+  .dbtn.right { grid-area: 2 / 3; }
+  .dbtn.down { grid-area: 3 / 2; }
+  @media (max-width: 768px) { .dpad { display: grid; } }
   .legend { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 12px; color: var(--text-dim); }
   .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
 </style>
@@ -159,6 +193,15 @@
     <button class="btn" id="btnReset">重置</button>
     <button class="btn" id="btnAI">AI 演示</button>
   </div>
+
+  <!-- 移动端虚拟方向键 -->
+  <div class="dpad" id="dpad" aria-label="虚拟方向键">
+    <button class="dbtn up" data-dir="up" aria-label="上">▲</button>
+    <button class="dbtn left" data-dir="left" aria-label="左">◀</button>
+    <button class="dbtn right" data-dir="right" aria-label="右">▶</button>
+    <button class="dbtn down" data-dir="down" aria-label="下">▼</button>
+  </div>
+
   <div class="tips">每吃 3 个食物升一级 · 速度加快 · 障碍增多 · 最高分自动保存</div>
 
 <script>
@@ -487,6 +530,18 @@
     if (Math.abs(dx) > Math.abs(dy)) game.dir = [dx > 0 ? 1 : -1, 0];
     else game.dir = [0, dy > 0 ? 1 : -1];
   }, { passive: true });
+
+  /* 虚拟方向键 */
+  var DPAD = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  document.querySelectorAll(".dbtn").forEach(function (btn) {
+    var setDir = function (e) {
+      e.preventDefault();
+      if (state !== "running" || aiMode) return;
+      game.dir = DPAD[btn.getAttribute("data-dir")];
+    };
+    btn.addEventListener("pointerdown", setDir);
+    btn.addEventListener("touchstart", setDir, { passive: false });
+  });
 
   overlay.addEventListener("click", function () {
     if (state === "idle" || state === "over" || state === "won") startGame();
