@@ -44,6 +44,13 @@
     background:var(--aqua);box-shadow:0 0 10px rgba(110,195,240,.7);cursor:pointer;}
   #songName{font-size:13px;color:var(--text);margin-left:auto;letter-spacing:1px;}
   #songName small{color:var(--muted);}
+  /* 播放进度条 */
+  .seek-row{display:flex;align-items:center;gap:10px;margin-top:14px;}
+  #seekBar{-webkit-appearance:none;flex:1;height:6px;border-radius:3px;background:var(--panel2);
+    box-shadow:inset 2px 2px 4px rgba(0,0,0,.6);outline:none;cursor:pointer;}
+  #seekBar::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+    background:var(--aqua);box-shadow:0 0 10px rgba(110,195,240,.7);cursor:pointer;}
+  .seek-time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:1px;min-width:40px;text-align:center;}
   #dropHint{font-size:12px;color:var(--muted);letter-spacing:1px;margin-top:10px;text-align:center;
     border:1px dashed rgba(110,195,240,.25);border-radius:12px;padding:8px;cursor:pointer;}
   #dropHint:hover{border-color:rgba(110,195,240,.6);color:var(--aqua);}
@@ -64,16 +71,19 @@
     font-size:13px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.5);outline:none;font-family:inherit;}
   .exp-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center;}
   #expProgress{font-size:12px;color:var(--aqua);letter-spacing:1px;min-height:16px;}
-  .exp-note{font-size:11px;color:var(--muted);line-height:1.7;margin-top:10px;
-    border-left:2px solid rgba(110,195,240,.35);padding-left:10px;}
 </style>
 </head>
 <body>
 <a class="back" href="../index.html" style="position:absolute;top:16px;left:16px;font-size:13px;color:var(--muted);text-decoration:none;letter-spacing:1px;z-index:9;">← 返回首页</a>
 <div class="card">
   <h1>水蓝声波</h1>
-  <div class="sub">AQUA WAVEFORM · Web Audio 频谱可视化（内置合成曲 / 本地音频）</div>
+  <div class="sub">AQUA WAVEFORM · Web Audio 频谱可视化（导入本地音频）</div>
   <canvas id="viz" width="900" height="340"></canvas>
+  <div class="seek-row">
+    <span class="seek-time" id="timeNow">0:00</span>
+    <input type="range" id="seekBar" min="0" max="1000" value="0">
+    <span class="seek-time" id="timeTotal">0:00</span>
+  </div>
   <div class="row">
     <button class="btn primary" id="btnPlay">▶ 播放</button>
     <div class="grp"><span class="lbl">模式</span>
@@ -89,13 +99,13 @@
       <button class="btn" data-rate="2">2.0x</button>
     </div>
     <div class="grp"><span class="lbl">音量</span><input type="range" id="vol" min="0" max="100" value="70"></div>
-    <span id="songName">内置合成 · 夜海水下 <small>(16s loop)</small></span>
+    <span id="songName">未加载音频 <small>(拖入文件或点击下方导入)</small></span>
   </div>
   <div id="dropHint">🎵 拖入本地音频文件（mp3 / wav / ogg / m4a）替换音源</div>
 
   <!-- 导出面板 -->
   <div class="export-box">
-    <h2>导出 · 透明素材</h2>
+    <h2>导出</h2>
     <div class="export-grid">
       <div class="exp-item"><span class="lbl">模式</span>
         <select id="expMode">
@@ -119,20 +129,11 @@
           <option value="60">60</option>
         </select>
       </div>
-      <div class="exp-item"><span class="lbl">时长 秒</span>
-        <input type="number" id="expDur" min="1" max="120" step="1" value="8">
-      </div>
     </div>
     <div class="exp-actions">
       <button class="btn" id="btnExpPng">导出透明 PNG 序列 (ZIP)</button>
-      <button class="btn" id="btnExpVid">导出视频 (MP4/WebM)</button>
+      <button class="btn" id="btnExpVid">导出视频 (MP4/WebM 带原曲)</button>
       <span id="expProgress"></span>
-    </div>
-    <div class="exp-note">
-      说明：MP4/H.264 编码本身不支持透明通道（这是格式限制，非本页缺陷）。透明素材请用
-      「PNG 序列」——ZIP 包内含逐帧透明 PNG，剪辑软件（PR/达芬奇/剪映）可直接导入序列帧；
-      需要视频文件时选「导出视频」，得到黑底 MP4/WebM，在剪辑软件中用「滤色/屏幕」
-      （Screen）混合模式即可实现透明叠加效果。
     </div>
   </div>
 </div>
@@ -142,11 +143,10 @@
 /* ============ 工具 ============ */
 const $ = id => document.getElementById(id);
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
-function midiHz(m){return 440*Math.pow(2,(m-69)/12);}
 
 /* ============ 音频图 ============ */
-let AC=null, analyser=null, master=null, source=null, bufBuiltin=null;
-let playing=false, mode='bars', rate=1, rateVal=1;
+let AC=null, analyser=null, master=null, source=null;
+let playing=false, mode='bars', rateVal=1;
 
 function initAudio(){
   if(AC) return;
@@ -160,86 +160,93 @@ function initAudio(){
   master.connect(AC.destination);
 }
 
-/* ============ 内置合成曲（离线渲染：夜海水下） ============ */
-function renderBuiltin(){
-  if(bufBuiltin) return bufBuiltin;
-  const sr=44100, dur=16, len=sr*dur;
-  const off=new OfflineAudioContext(2, len, sr);
-  const t0=off.currentTime;
-  const spb=60/84; // 84 BPM
-  const prog=[[45,48,52],[41,45,48],[43,47,50],[38,41,45]]; // Am F G Dm（midi）
-  const mk=(type,freq,start,dur,vol)=>{
-    const o=off.createOscillator(), g=off.createGain();
-    o.type=type; o.frequency.value=freq;
-    g.gain.setValueAtTime(0,start);
-    g.gain.linearRampToValueAtTime(vol,start+0.08);
-    g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
-    o.connect(g); g.connect(off.destination);
-    o.start(start); o.stop(start+dur+0.1);
-  };
-  const noise=()=>{
-    const b=off.createBuffer(1, sr*1, sr), d=b.getChannelData(0);
-    for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
-    return b;
-  };
-  const noiseBuf=noise();
-  const hat=(t,vol)=>{
-    const s=off.createBufferSource(); s.buffer=noiseBuf;
-    const f=off.createBiquadFilter(); f.type='highpass'; f.frequency.value=7500;
-    const g=off.createGain();
-    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.06);
-    s.connect(f); f.connect(g); g.connect(off.destination);
-    s.start(t); s.stop(t+0.1);
-  };
-  for(let bar=0;bar<21;bar++){
-    const t=t0+bar*4*spb;
-    const ch=prog[bar%4];
-    // pad：三和弦长音
-    for(const m of ch){
-      mk('sine', midiHz(m), t, 4*spb+0.4, 0.10);
-      mk('triangle', midiHz(m+12), t, 4*spb+0.4, 0.045);
-    }
-    // 琶音：每拍一个 8 分音符，音高在八度内游走
-    for(let s=0;s<8;s++){
-      const m=ch[(s+bar)%3]+(s%2?12:0);
-      mk('sine', midiHz(m), t+s*spb/2, spb*0.9, 0.12);
-    }
-    // 稀疏鼓点：每小节第一拍低频冲击 + 2/4 拍响弦 + 8 分 hi-hat
-    mk('sine', 110, t, 0.3, 0.5);
-    mk('sine', 55, t, 0.4, 0.35);
-    hat(t+spb*2, 0.10);
-    for(let s=0;s<8;s+=2) hat(t+s*spb/2, 0.05);
-  }
-  return off.startRendering().then(b=>{ bufBuiltin=b; return b; });
-}
+/* ============ 播放控制（播放器式：可拖动进度条 / 暂停续播） ============ */
+let currentBuf=null, bufLabel='', pauseOffset=0, startAt=0, ctxStart=0, seeking=false;
 
-/* ============ 播放控制 ============ */
 function stopSrc(){
   if(source){ try{source.onended=null;source.stop();}catch(e){} source=null; }
 }
-function playBuffer(buf,label){
+function fmtTime(s){
+  if(!isFinite(s)||s<0) s=0;
+  const m=Math.floor(s/60), ss=Math.floor(s%60);
+  return m+':'+String(ss).padStart(2,'0');
+}
+function curTime(){
+  if(!source||!playing) return pauseOffset;
+  return clamp(startAt+(AC.currentTime-ctxStart)*source.playbackRate.value, 0, currentBuf?currentBuf.duration:0);
+}
+function updatePlayUI(){
+  $('btnPlay').textContent=playing?'⏸ 暂停':'▶ 播放';
+}
+function playBuffer(buf,label,offset){
   initAudio();
   stopSrc();
   AC.resume();
+  currentBuf=buf; // 播放入口统一持有音源（导入/续播/seek 都走这里）
+  if(label!==undefined) bufLabel=label;
   source=AC.createBufferSource();
   source.buffer=buf;
-  source.loop=true;
-  source.playbackRate.value=rate;
+  source.loop=false; // 播放器语义：播完即停，不循环
+  source.playbackRate.value=rateVal;
   source.connect(analyser);
-  source.onended=()=>{};
-  source.start();
+  const off=clamp(offset,0,Math.max(0,buf.duration-0.05));
+  startAt=off; ctxStart=AC.currentTime;
+  source.onended=()=>{
+    if(playing){ // 自然播完（手动 stop 前已置 onended=null，不会走到这）
+      playing=false; pauseOffset=buf.duration;
+      updatePlayUI();
+      $('seekBar').value=1000;
+      $('timeNow').textContent=fmtTime(pauseOffset);
+    }
+  };
+  source.start(0,off);
   playing=true;
-  $('btnPlay').textContent='⏸ 暂停';
+  updatePlayUI();
   $('songName').innerHTML=label;
 }
 function togglePlay(){
-  if(!AC){ playBuiltin(); return; }
-  if(playing){ source.stop(); playing=false; $('btnPlay').textContent='▶ 播放'; }
-  else { playBuiltin(); }
+  if(!currentBuf){ alert('请先导入音频文件'); $('dropHint').style.borderColor='rgba(110,195,240,.8)'; return; }
+  if(playing){
+    pauseOffset=curTime();
+    stopSrc();
+    playing=false;
+    updatePlayUI();
+  } else {
+    // 已播完则从头播，否则从暂停处继续
+    const resumeFrom = pauseOffset >= currentBuf.duration-0.05 ? 0 : pauseOffset;
+    playBuffer(currentBuf,bufLabel,resumeFrom);
+  }
 }
-function playBuiltin(){
-  renderBuiltin().then(b=>playBuffer(b,'内置合成 · 夜海水下 <small>('+b.duration.toFixed(1)+'s loop)</small>'));
+function seekTo(t){
+  if(!currentBuf) return;
+  const tt=clamp(t,0,currentBuf.duration);
+  if(playing){
+    playBuffer(currentBuf,bufLabel,tt); // 重播 source 并从 tt 继续
+  } else {
+    pauseOffset=tt;
+    $('timeNow').textContent=fmtTime(tt);
+  }
 }
+$('seekBar').addEventListener('input',()=>{
+  seeking=true;
+  if(currentBuf) $('timeNow').textContent=fmtTime(+$('seekBar').value/1000*currentBuf.duration);
+});
+$('seekBar').addEventListener('change',()=>{
+  seeking=false;
+  if(currentBuf){
+    seekTo(+$('seekBar').value/1000*currentBuf.duration);
+    if(!playing) $('seekBar').value=Math.round(pauseOffset/currentBuf.duration*1000);
+  }
+});
+setInterval(()=>{
+  if(!currentBuf) return;
+  if(playing && !seeking){
+    const t=curTime();
+    $('seekBar').value=Math.round(t/currentBuf.duration*1000);
+    $('timeNow').textContent=fmtTime(t);
+  }
+  $('timeTotal').textContent=fmtTime(currentBuf.duration);
+},250);
 
 /* ============ 本地文件 ============ */
 function loadFile(file){
@@ -247,7 +254,10 @@ function loadFile(file){
   fr.onload=()=>{
     initAudio();
     AC.decodeAudioData(fr.result).then(buf=>{
-      playBuffer(buf,'本地音频 · '+file.name+' <small>('+buf.duration.toFixed(1)+'s)</small>');
+      bufLabel='本地音频 · '+file.name+' <small>('+buf.duration.toFixed(1)+'s)</small>';
+      pauseOffset=0; seeking=false;
+      $('timeTotal').textContent=fmtTime(buf.duration);
+      playBuffer(buf,bufLabel,0); // 导入即从头播放
     }).catch(()=>alert('无法解码该音频文件'));
   };
   fr.readAsArrayBuffer(file);
@@ -430,34 +440,23 @@ document.addEventListener('drop',e=>{
   if(f && f.type.startsWith('audio/')) loadFile(f);
 });
 
-/* 演示模式：自动播放便于截图 */
-if(new URLSearchParams(location.search).get('demo')){
-  window.addEventListener('load',()=>{ setTimeout(()=>{ initAudio(); playBuiltin(); }, 300); });
-}
-
-/* ============ 导出（透明 PNG 序列 / 黑底视频） ============ */
-let currentBuf=null;
-const _origPlayBuffer=playBuffer;
-playBuffer=function(buf,label){
-  currentBuf=buf;
-  _origPlayBuffer(buf,label);
-};
-
+/* ============ 导出（透明 PNG 序列 / 黑底视频带原曲音轨） ============ */
 function getExportParams(){
   return {
     mode: $('expMode').value,
     w: clamp(parseInt($('expW').value,10)||960,160,1920),
     h: clamp(parseInt($('expH').value,10)||540,90,1080),
     fps: parseInt($('expFps').value,10)||24,
-    dur: clamp(parseInt($('expDur').value,10)||8,1,120),
   };
 }
 
-/* 逐帧离线渲染采样频谱：对每一帧时间点 t 渲染 [t, t+1/fps+0.12s) 的音频，
- * 取 analyser 末尾数据作为该帧频谱（loop 循环超长导出）。 */
-async function sampleFrames(buf,fps,dur,onProgress){
+/* 逐帧离线渲染采样整曲频谱：对每一帧时间点 t 渲染 [t, t+1/fps+0.12s) 的音频段，
+ * 取 analyser 末尾数据作为该帧频谱。导出时长 = 整曲时长（不受播放状态影响）。
+ * 实测：headless 下约 3ms/帧，3 分钟歌曲 24fps 采样约 13 秒。 */
+async function sampleFrames(buf,fps,onProgress){
   const sr=buf.sampleRate;
-  const total=Math.ceil(dur*fps);
+  const dur=buf.duration;
+  const total=Math.max(1,Math.ceil(dur*fps));
   const segDur=1/fps+0.12;
   const segSamples=Math.ceil(segDur*sr);
   const freqFrames=[], timeFrames=[];
@@ -465,7 +464,7 @@ async function sampleFrames(buf,fps,dur,onProgress){
     const t=i/fps;
     const off=new OfflineAudioContext(1,segSamples,sr);
     const src=off.createBufferSource();
-    src.buffer=buf; src.loop=true;
+    src.buffer=buf; src.loop=false;
     const an=off.createAnalyser();
     an.fftSize=2048; an.smoothingTimeConstant=0.5;
     src.connect(an); an.connect(off.destination);
@@ -478,7 +477,7 @@ async function sampleFrames(buf,fps,dur,onProgress){
     freqFrames.push(f); timeFrames.push(tm);
     if(onProgress) onProgress(i+1,total);
   }
-  return {freqFrames,timeFrames,total};
+  return {freqFrames,timeFrames,total,dur};
 }
 
 /* 导出画布（透明底或黑底），四种模式，任意尺寸 */
@@ -632,54 +631,73 @@ function downloadBlob(blob,name){
 
 async function exportPngSeq(){
   const p=getExportParams();
-  const buf=currentBuf||await renderBuiltin();
+  if(!currentBuf){ $('expProgress').textContent='请先导入音频'; return; }
+  const buf=currentBuf;
   const prog=$('expProgress');
-  prog.textContent='采样频谱中… 0/'+Math.ceil(p.dur*p.fps);
-  const {freqFrames,timeFrames,total}=await sampleFrames(buf,p.fps,p.dur,(i,n)=>{
+  const total=Math.max(1,Math.ceil(buf.duration*p.fps));
+  prog.textContent='采样频谱中… 0/'+total;
+  const {freqFrames,timeFrames,total:t2}=await sampleFrames(buf,p.fps,(i,n)=>{
     prog.textContent='采样频谱中… '+i+'/'+n;
   });
   const files=[];
-  for(let i=0;i<total;i++){
+  for(let i=0;i<t2;i++){
     paintExport(p.mode,freqFrames[i],timeFrames[i],{w:p.w,h:p.h,bg:'transparent'});
     const blob=await new Promise(res=>expCanvas.toBlob(res,'image/png'));
     const data=new Uint8Array(await blob.arrayBuffer());
     files.push({name:'frame'+String(i+1).padStart(4,'0')+'.png',data});
-    if(i%10===0) prog.textContent='渲染 PNG 帧… '+i+'/'+total;
+    if(i%10===0) prog.textContent='渲染 PNG 帧… '+i+'/'+t2;
   }
   const zip=buildZip(files);
   downloadBlob(new Blob([zip],{type:'application/zip'}),
-    'spectrum-'+p.mode+'-'+p.w+'x'+p.h+'-'+total+'f.zip');
-  prog.textContent='已导出 '+total+' 帧 PNG 序列（'+Math.round(zip.length/1024)+' KB）';
+    'spectrum-'+p.mode+'-'+p.w+'x'+p.h+'-'+t2+'f.zip');
+  prog.textContent='已导出 '+t2+' 帧 PNG 序列（'+Math.round(zip.length/1024)+' KB）';
 }
 
 async function exportVideo(){
   const p=getExportParams();
-  const buf=currentBuf||await renderBuiltin();
+  if(!currentBuf){ $('expProgress').textContent='请先导入音频'; return; }
+  const buf=currentBuf;
   const prog=$('expProgress');
-  const {freqFrames,timeFrames,total}=await sampleFrames(buf,p.fps,p.dur,(i,n)=>{
+  const total=Math.max(1,Math.ceil(buf.duration*p.fps));
+  prog.textContent='采样频谱中… 0/'+total;
+  const {freqFrames,timeFrames,total:t2,dur}=await sampleFrames(buf,p.fps,(i,n)=>{
     prog.textContent='采样频谱中… '+i+'/'+n;
   });
   // 复用导出画布：paintExport 画的就是它，captureStream 也必须录它
   if(!expCanvas){ expCanvas=document.createElement('canvas'); expCtx=expCanvas.getContext('2d',{willReadFrequently:true}); }
   expCanvas.width=p.w; expCanvas.height=p.h;
-  const stream=expCanvas.captureStream(p.fps);
-  const mime=MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E')
-    ?'video/mp4;codecs=avc1.42E01E'
-    :(MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm');
-  const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6_000_000});
+  const canvasStream=expCanvas.captureStream(p.fps);
+  // 音频轨：独立 source 静音输出到 MediaStreamDestination（不打扰正在播放的播放器）
+  initAudio();
+  const mDest=AC.createMediaStreamDestination();
+  const aSrc=AC.createBufferSource();
+  aSrc.buffer=buf;
+  aSrc.connect(mDest);
+  const stream=new MediaStream([...canvasStream.getVideoTracks(), ...mDest.stream.getAudioTracks()]);
+  const mime=MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E,mp4a.40.2')
+    ?'video/mp4;codecs=avc1.42E01E,mp4a.40.2' // 显式声明音频编码器 → AAC（mp4+opus 兼容性差）
+    :(MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E')?'video/mp4;codecs=avc1.42E01E'
+      :(MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm'));
+  const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6_000_000,audioBitsPerSecond:192_000});
   const chunks=[];
   rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
   const done=new Promise(res=>rec.onstop=res);
   rec.start(200);
+  AC.resume();
+  aSrc.start(0,0); // 音频从 0 开始，与视频帧同步（performance.now 时钟，漂移 < 10ms/3min）
   const t0=performance.now();
   let fi=0;
   await new Promise(res=>{
     const iv=setInterval(()=>{
       const t=performance.now()-t0;
-      fi=Math.min(total-1,Math.floor(t/1000*p.fps));
+      fi=Math.min(t2-1,Math.floor(t/1000*p.fps));
       paintExport(p.mode,freqFrames[fi],timeFrames[fi],{w:p.w,h:p.h,bg:'black'});
-      prog.textContent='录制视频… '+fi+'/'+total+'（'+Math.round(t/10)/100+'s）';
-      if(t>=p.dur*1000){ clearInterval(iv); rec.stop(); res(); }
+      prog.textContent='录制视频… '+fi+'/'+t2+'（'+Math.round(t/10)/100+'s）';
+      if(t>=dur*1000+50 || fi>=t2-1 && t>=dur*1000-20){
+        clearInterval(iv);
+        try{ aSrc.stop(); }catch(e){}
+        rec.stop(); res();
+      }
     },Math.max(16,1000/p.fps/2));
   });
   await done;
@@ -689,7 +707,7 @@ async function exportVideo(){
   const ext=mime.startsWith('video/mp4')?'mp4':'webm';
   const name='spectrum-'+p.mode+'-'+p.w+'x'+p.h+'.'+ext;
   downloadBlob(blob,name);
-  prog.textContent='已导出 '+name+'（'+Math.round(blob.size/1024)+' KB）';
+  prog.textContent='已导出 '+name+'（'+Math.round(blob.size/1024)+' KB，含原曲音轨）';
 }
 
 $('btnExpPng').onclick=()=>{

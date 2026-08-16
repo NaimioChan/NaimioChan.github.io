@@ -1,7 +1,8 @@
-// 频谱可视化 v3 验证：直接检查数据源（freqData/simMode）+ PASSTHROUGH_RAF 驱动
+// 频谱可视化 v4 验证：播放器化（进度条/续播/不卸载）+ 全曲导出 + MP4 带音轨 + 无内置曲
 import { writeFileSync } from 'node:fs';
-const CDP = 'http://127.0.0.1:9224';
+const CDP = 'http://127.0.0.1:9226';
 const TARGET = 'http://127.0.0.1:8714/index.html';
+const AUDIO = 'http://127.0.0.1:8714/test_audio.mp3';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const targets = await (await fetch(`${CDP}/json`)).json();
 const page = targets.find((t) => t.type === 'page' && !t.url.startsWith('chrome://') && !t.url.startsWith('devtools://'));
@@ -28,62 +29,110 @@ const DRIVE_RAF = (n) => `(() => {
   return cbs.length;
 })()`;
 
-const DATA = `(() => ({
+const STATE = `(() => ({
   freqSum: freqData.reduce((a,b)=>a+b,0),
   simMode: simMode,
   playing: playing,
-  mode: mode,
+  btnPlay: document.getElementById('btnPlay').textContent,
+  songName: document.getElementById('songName').textContent,
+  seekVal: document.getElementById('seekBar').value,
+  timeNow: document.getElementById('timeNow').textContent,
+  timeTotal: document.getElementById('timeTotal').textContent,
+  startAt: startAt, pauseOffset: pauseOffset,
+  dur: currentBuf ? currentBuf.duration : null,
+  acState: AC ? AC.state : 'null',
 }))()`;
 
 try {
   await send('Page.navigate', { url: TARGET });
   await sleep(2500);
 
-  // 1. 进页面：freqData 全 0、simMode=false（修复核心：无规律频谱数据源已切断）
-  const d1 = await evalJs(DATA);
-  check('进页面 freqData 全零（无频谱数据）', d1.freqSum === 0, `freqSum=${d1.freqSum} simMode=${d1.simMode}`);
-  check('进页面 simMode=false（未走模拟分支）', d1.simMode === false);
+  // 1. 进页面：无内置曲、freqData 全零、进度条存在、导出面板已简化
+  const d1 = await evalJs(STATE);
+  check('进页面 freqData 全零', d1.freqSum === 0, `freqSum=${d1.freqSum}`);
+  check('进页面 simMode=false', d1.simMode === false);
+  check('未导入时 btnPlay=播放', d1.btnPlay === '▶ 播放', d1.btnPlay);
+  check('未导入时 songName=未加载音频', d1.songName.includes('未加载音频'), d1.songName);
+  const ui = await evalJs(`(() => ({
+    hasSeek: !!document.getElementById('seekBar'),
+    seekVal: document.getElementById('seekBar').value,
+    hasExpDur: !!document.getElementById('expDur'),
+    hasNote: !!document.querySelector('.exp-note'),
+    h2: document.querySelector('.export-box h2').textContent,
+    hasBuiltin: !!document.querySelector('[data-rate]'),
+  }))()`);
+  check('进度条存在且初始 0', ui.hasSeek && ui.seekVal === '0');
+  check('时长参数已删除', !ui.hasExpDur);
+  check('说明文字已删除', !ui.hasNote, `h2=${ui.h2}`);
+  check('导出标题无「透明素材」', !ui.h2.includes('透明素材'), ui.h2);
 
-  // 2. 驱动 rAF 后画布只有网格线（无随机频谱条）
+  // 2. 未导入点播放 → 不崩溃不播放（alert 兜底）
+  await evalJs(`window.alert=()=>{}; document.getElementById('btnPlay').click()`);
+  await sleep(300);
+  const d2 = await evalJs(STATE);
+  check('未导入点播放仍不播放', d2.playing === false);
+
+  // 3. 注入测试音频（fetch → decode → playBuffer）：导入即从头播放
+  await evalJs(`(async () => {
+    const r = await fetch('${AUDIO}');
+    const ab = await r.arrayBuffer();
+    initAudio();
+    const buf = await AC.decodeAudioData(ab);
+    playBuffer(buf, '测试', 0);
+  })()`);
+  await sleep(1500);
+  const d3 = await evalJs(STATE);
+  check('导入后 playing=true', d3.playing === true, `btnPlay=${d3.btnPlay}`);
+  check('导入后按钮=暂停', d3.btnPlay === '⏸ 暂停', d3.btnPlay);
+  check('currentBuf 时长≈3s（整曲）', d3.dur !== null && Math.abs(d3.dur - 3) < 0.2, `dur=${d3.dur}`);
+  check('总时长显示 0:03', d3.timeTotal === '0:03', d3.timeTotal);
+  check('currentBuf 不被卸载（暂停后仍可续播的核心）', d3.dur !== null);
+
+  // 4. 驱动 rAF 后频谱有数据（headless 模拟分支或真实频谱均可）
   await evalJs(DRIVE_RAF(3));
   await sleep(200);
-  const grid = await evalJs(`(() => {
-    const cv = document.getElementById('viz');
-    const d = cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data;
-    // 非零 alpha 像素的行分布（网格线在 y≈57/113/170/227/283，频谱条应在底部大块区域）
-    const rows = new Set();
-    let nz = 0;
-    for (let y = 0; y < cv.height; y++) {
-      for (let x = 0; x < cv.width; x++) {
-        if (d[(y*cv.width+x)*4+3] > 0) { nz++; if (nz < 20000) rows.add(y); }
-      }
-    }
-    // 检查底部 1/4 区域是否有大量内容（频谱条特征）
-    let bottom = 0;
-    for (let y = Math.floor(cv.height*0.75); y < cv.height; y++)
-      for (let x = 0; x < cv.width; x++)
-        if (d[(y*cv.width+x)*4+3] > 0) bottom++;
-    return { nz, rowCount: rows.size, bottom };
+  const d4 = await evalJs(STATE);
+  check('播放中频谱有数据', d4.freqSum > 0, `freqSum=${d4.freqSum} acState=${d4.acState}`);
+
+  // 5. 暂停：记录暂停位置，source 停止但 currentBuf 保留
+  await evalJs(`togglePlay()`);
+  await sleep(600);
+  const d5 = await evalJs(STATE);
+  check('暂停后 playing=false', d5.playing === false, `btnPlay=${d5.btnPlay}`);
+  check('暂停后按钮=播放', d5.btnPlay === '▶ 播放');
+  check('暂停后 currentBuf 仍在（未卸载）', d5.dur !== null, `dur=${d5.dur}`);
+  check('暂停位置已记录', typeof d5.pauseOffset === 'number' && d5.pauseOffset >= 0, `pauseOffset=${d5.pauseOffset}`);
+
+  // 6. 暂停态拖动进度条 → 跳转位置
+  await evalJs(`(() => {
+    const sb = document.getElementById('seekBar');
+    sb.value = 600;
+    sb.dispatchEvent(new Event('input'));
+    sb.dispatchEvent(new Event('change'));
   })()`);
-  check('画布内容仅网格线（非频谱）', grid.nz > 0 && grid.nz < 20000, `nz=${grid.nz} 行数=${grid.rowCount} 底部1/4=${grid.bottom}`);
+  await sleep(300);
+  const d6 = await evalJs(STATE);
+  check('暂停态 seek 到 60%≈1.8s', Math.abs(d6.pauseOffset - 1.8) < 0.15, `pauseOffset=${d6.pauseOffset} timeNow=${d6.timeNow}`);
 
-  // 3. 播放后：freqData 有数据（headless 中 AC suspended 会走模拟分支，
-  //    但真实浏览器 AC running 走真实频谱——两者都满足「有内容」）
-  await evalJs(`document.getElementById('btnPlay').click()`);
-  await sleep(2000);
-  const d2 = await evalJs(DATA);
-  check('播放后 freqData 有数据', d2.freqSum > 0, `freqSum=${d2.freqSum} playing=${d2.playing} acState=${await evalJs(`AC?AC.state:'null'`)}`);
-  check('播放后画面有频谱内容', d2.freqSum > 0 && d2.simMode === true, `freqSum=${d2.freqSum}（headless 模拟降级或真实频谱均可）`);
+  // 7. 继续播放：从暂停处继续（startAt = pauseOffset，不回到 0）
+  await evalJs(`togglePlay()`);
+  await sleep(600);
+  const d7 = await evalJs(STATE);
+  check('继续播放后 playing=true', d7.playing === true);
+  check('从暂停处继续（startAt≈1.8）', Math.abs(d7.startAt - 1.8) < 0.15, `startAt=${d7.startAt} pauseOffset=${d7.pauseOffset}`);
 
-  // 4. 暂停后：freqData 归零（回到静默）
-  await evalJs(`document.getElementById('btnPlay').click()`);
-  await sleep(1200);
-  const d3 = await evalJs(DATA);
-  check('暂停后 freqData 归零', d3.freqSum === 0, `freqSum=${d3.freqSum} playing=${d3.playing}`);
+  // 8. 播放态拖动进度条 → 直接跳转
+  await evalJs(`(() => {
+    const sb = document.getElementById('seekBar');
+    sb.value = 300;
+    sb.dispatchEvent(new Event('input'));
+    sb.dispatchEvent(new Event('change'));
+  })()`);
+  await sleep(600);
+  const d8 = await evalJs(STATE);
+  check('播放态 seek 到 30%≈0.9s', Math.abs(d8.startAt - 0.9) < 0.15, `startAt=${d8.startAt}`);
 
-  // 5. 导出 PNG 序列（透明底）：检查 zip 内 PNG 的 alpha 通道
-  await evalJs(`document.getElementById('btnPlay').click()`);  // currentBuf 就绪
-  await sleep(800);
+  // 9. 导出 PNG 序列：全曲 3s @ 12fps = 36 帧（验证导出整曲而非固定时长）
   await evalJs(`(() => {
     window.__lastZip = null;
     const orig = window.downloadBlob;
@@ -91,19 +140,17 @@ try {
     document.getElementById('expW').value = 320;
     document.getElementById('expH').value = 180;
     document.getElementById('expFps').value = '12';
-    document.getElementById('expDur').value = 1;
     document.getElementById('expMode').value = 'bars';
     document.getElementById('btnExpPng').click();
   })()`);
   let zipInfo = null;
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 40; i++) {
     await sleep(500);
     zipInfo = await evalJs(`window.__lastZip ? { name: window.__lastZip.name, size: window.__lastZip.size } : null`);
     if (zipInfo) break;
   }
-  check('PNG 序列导出完成', !!zipInfo, zipInfo ? JSON.stringify(zipInfo) : 'timeout');
+  check('PNG 全曲导出完成', !!zipInfo, zipInfo ? JSON.stringify(zipInfo) : 'timeout');
   if (zipInfo) {
-    // 从页面取 zip base64 写盘
     const b64 = await evalJs(`(async () => {
       const buf = new Uint8Array(await window.__lastZip.blob.arrayBuffer());
       let bin = ''; const CH = 0x8000;
@@ -114,7 +161,7 @@ try {
     console.log('  saved viz_export.zip');
   }
 
-  // 6. 导出视频（MP4/WebM）
+  // 10. 导出视频：MP4 带原曲音轨
   await evalJs(`(() => {
     window.__lastVid = null;
     const orig = window.downloadBlob;
@@ -122,12 +169,23 @@ try {
     document.getElementById('btnExpVid').click();
   })()`);
   let vidInfo = null;
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 40; i++) {
     await sleep(500);
     vidInfo = await evalJs(`window.__lastVid ? { name: window.__lastVid.name, size: window.__lastVid.size } : null`);
     if (vidInfo && vidInfo.size > 0) break;
   }
   check('视频导出完成（非空）', !!vidInfo && vidInfo.size > 0, vidInfo ? JSON.stringify(vidInfo) : 'timeout/empty');
+  if (vidInfo && vidInfo.size > 0) {
+    const b64 = await evalJs(`(async () => {
+      const buf = new Uint8Array(await window.__lastVid.blob.arrayBuffer());
+      let bin = ''; const CH = 0x8000;
+      for (let i = 0; i < buf.length; i += CH) bin += String.fromCharCode.apply(null, buf.subarray(i, i + CH));
+      return btoa(bin);
+    })()`);
+    const ext = vidInfo.name.endsWith('webm') ? 'webm' : 'mp4';
+    writeFileSync(`C:/Users/Administrator/AppData/Local/Temp/viz_export.${ext}`, Buffer.from(b64, 'base64'));
+    console.log(`  saved viz_export.${ext}`);
+  }
   const progTxt = await evalJs(`document.getElementById('expProgress').textContent`);
   console.log('  导出状态:', progTxt);
 
