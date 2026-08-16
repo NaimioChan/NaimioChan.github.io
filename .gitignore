@@ -13,3 +13,4 @@ npm-debug.log*
 # 编辑器
 .vscode/
 .idea/
+scripts/ascii-verify-out/

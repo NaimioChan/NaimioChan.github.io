@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ASCII 立方体 · 非茗工坊</title>
+<title>ASCII 动画工坊 · 非茗工坊</title>
 <style>
   :root {
     --bg: #e6f0fa;
@@ -52,7 +52,7 @@
     max-width: 96vw;
     margin: 0 auto;
   }
-  /* canvas 绘制 ASCII：内部分辨率 480x240，CSS 等比缩放，窄屏完整居中 */
+  /* canvas 绘制 ASCII：内部分辨率随字符网格动态变化，CSS 等比缩放，窄屏完整居中 */
   canvas#screen {
     display: block;
     width: 100%;
@@ -60,6 +60,22 @@
     background: #06101e;
     border-radius: 14px;
   }
+  .tabs { display: flex; gap: 12px; }
+  .tab {
+    padding: 8px 22px;
+    border: none;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    background: var(--surface);
+    box-shadow: 5px 5px 12px var(--shadow-dk), -5px -5px 12px var(--shadow-lt);
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .tab.active { color: #fff; background: linear-gradient(145deg, var(--accent), var(--accent-soft)); box-shadow: 4px 4px 10px var(--shadow-dk), -4px -4px 10px var(--shadow-lt); }
   .controls {
     display: flex;
     gap: 14px;
@@ -84,6 +100,8 @@
   .btn:hover { color: var(--accent); }
   .btn:active { box-shadow: inset 4px 4px 10px var(--shadow-dk), inset -4px -4px 10px var(--shadow-lt); color: var(--accent); }
   .btn.primary { color: #fff; background: linear-gradient(145deg, var(--accent), var(--accent-soft)); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; color: var(--text-dim); }
+  .btn:disabled:hover { color: var(--text-dim); }
   .slider {
     display: flex;
     align-items: center;
@@ -95,32 +113,148 @@
     background: var(--surface);
     box-shadow: 4px 4px 10px var(--shadow-dk), -4px -4px 10px var(--shadow-lt);
   }
-  input[type="range"] { accent-color: var(--accent); width: 110px; }
-  .tips { font-size: 12.5px; color: var(--text-dim); letter-spacing: 1px; }
+  input[type="range"] { accent-color: var(--accent); width: 90px; }
+  select {
+    padding: 8px 10px;
+    border: none;
+    border-radius: 12px;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: inset 2px 2px 5px var(--shadow-dk), inset -2px -2px 5px var(--shadow-lt);
+    font-family: inherit;
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-dim);
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: 4px 4px 10px var(--shadow-dk), -4px -4px 10px var(--shadow-lt);
+    cursor: pointer;
+    user-select: none;
+  }
+  .check input { accent-color: var(--accent); }
+  .status { font-size: 12.5px; color: var(--text-dim); letter-spacing: 1px; min-height: 18px; text-align: center; }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
   <a class="back" href="../index.html">← 返回首页</a>
-  <h1>ASCII 立方体</h1>
-  <p class="sub">3D LINE FRAME · STARFIELD</p>
+  <h1>ASCII 动画工坊</h1>
+  <p class="sub">CUBE · VIDEO TO ASCII · EXPORT</p>
 
   <div class="screen-box">
-    <canvas id="screen" width="480" height="240" aria-label="ASCII 立方体动画"></canvas>
+    <canvas id="screen" width="480" height="240" aria-label="ASCII 动画"></canvas>
   </div>
 
-  <div class="controls">
+  <div class="tabs">
+    <button class="tab active" id="tabCube">立方体</button>
+    <button class="tab" id="tabVideo">视频转码</button>
+  </div>
+
+  <!-- 立方体控制 -->
+  <div class="controls hidden" id="cubeControls">
     <button class="btn primary" id="btnToggle">暂停</button>
     <button class="btn" id="btnSpeed1">正常</button>
     <div class="slider">速度 <input type="range" id="speed" min="5" max="40" value="20" step="1"> <span id="fpsLabel">20</span> fps</div>
   </div>
-  <div class="tips">近的棱亮 · 远的棱暗 · 星空缓缓滚动</div>
+
+  <!-- 视频控制 -->
+  <div class="controls hidden" id="videoControls">
+    <button class="btn primary" id="btnImport">📂 导入视频</button>
+    <button class="btn" id="btnVideoPlay" disabled>播放</button>
+    <button class="btn" id="btnVideoRestart" disabled>重播</button>
+    <div class="slider">宽度 <input type="range" id="vidCols" min="40" max="160" value="80" step="1"> <span id="colLabel">80</span></div>
+    <div class="slider">高度 <input type="range" id="vidRows" min="4" max="60" value="25" step="1"> <span id="rowLabel">25</span></div>
+    <div class="slider">帧率 <input type="range" id="vidFps" min="2" max="30" value="12" step="1"> <span id="fps2Label">12</span> fps</div>
+    <div class="slider">对比 <input type="range" id="vidGain" min="30" max="300" value="100" step="5"> <span id="gainLabel">100</span>%</div>
+    <div class="slider">字符集
+      <select id="vidCharset">
+        <option value="standard" selected>标准</option>
+        <option value="classic">经典</option>
+        <option value="compact">紧凑</option>
+        <option value="dots">点阵</option>
+        <option value="blocks">方块</option>
+      </select>
+    </div>
+    <label class="check"><input type="checkbox" id="vidInvert"> 反相</label>
+    <button class="btn" id="btnExportTxt" disabled>导出 TXT</button>
+    <button class="btn" id="btnExportGif" disabled>导出 GIF</button>
+  </div>
+
+  <p class="status" id="status">选择「视频转码」，导入本地视频即可生成 ASCII 动画</p>
+
+  <input type="file" id="fileInput" accept="video/*" class="hidden">
+  <video id="srcVideo" loop muted playsinline class="hidden"></video>
 
 <script>
 (function () {
   "use strict";
+
+  /* ================================================================
+   *  公共：canvas / 绘制
+   * ================================================================ */
+  var cv = document.getElementById("screen");
+  var cctx = cv.getContext("2d", { willReadFrequently: true });
+  var CW = 6, CH = 10;                 // 字符单元像素
+  cctx.font = "10px Consolas, 'Courier New', monospace";
+  cctx.textBaseline = "top";
+
+  // 立方体模式配色（原有）
+  var CUBE_COLORS = { "#": "#6ecdf5", "+": "#3c82c8", ".": "#1e4678",
+                      "*": "#c8e6ff", ":": "#78a0d2" };
+  // 视频模式色阶（背景 + 7 级水蓝，亮字符→亮色）
+  var SHADES = ["#0a1c30", "#123a5e", "#1d5a8f", "#2f7fc4", "#5fa8e0", "#9fd0f2", "#e0f2ff"];
+  var PALETTE = [[6,16,30],[10,28,48],[18,58,94],[29,90,143],[47,127,196],[95,168,224],[159,208,242],[224,242,255]];
+
+  var CHARSETS = {
+    standard: "@%#*+=-:. ",
+    classic:  "@$%#&*+=-. ",
+    compact:  "@%#+-. ",
+    dots:     "#+. ",
+    blocks:   "█▓▒░ "
+  };
+
+  var mode = "cube";            // "cube" | "video"
+  var cols = 80, rows = 24;     // 当前字符网格
+
+  function setCanvasSize(c, r) {
+    cv.width = c * CW;
+    cv.height = r * CH;
+  }
+
+  function drawFrame(text) {
+    cctx.fillStyle = "#06101e";
+    cctx.fillRect(0, 0, cv.width, cv.height);
+    var gw = mode === "video" ? vidCols : cols;   // 换行宽度必须匹配当前模式的网格
+    var gh = mode === "video" ? vidRows : rows;
+    var step = mode === "video" ? 6 / (CHARSETS[charsetName].length - 1) : 0;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (ch === "\n" || ch === " ") continue;
+      var col;
+      if (mode === "video") {
+        var idx = CHARSETS[charsetName].indexOf(ch);
+        if (idx < 0) continue;
+        col = SHADES[Math.round(idx * step)];
+      } else {
+        col = CUBE_COLORS[ch];
+        if (!col) continue;
+      }
+      cctx.fillStyle = col;
+      cctx.fillText(ch, (i % (gw + 1)) * CW, ((i / (gw + 1)) | 0) * CH);
+    }
+  }
+
+  /* ================================================================
+   *  立方体模式（原有实现，保留）
+   * ================================================================ */
   var W = 80, H = 24;
 
-  /* ---------- 3D 立方体（移植自 ascii_cube.py） ---------- */
   function cubeVertices(size) {
     var s = size / 2, v = [];
     for (var x = -1; x <= 1; x += 2)
@@ -157,10 +291,9 @@
     }
   }
 
-  /* ---------- 星空 ---------- */
   var STARS = [];
   (function () {
-    var rnd = function () { // mulberry32 固定种子 20260816，保证每次相同
+    var rnd = (function () {
       var t = 20260816 >>> 0;
       return function () {
         t += 0x6D2B79F5;
@@ -168,7 +301,7 @@
         r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
         return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
       };
-    }();
+    })();
     var chars = [".", ":", "*", "+"];
     for (var i = 0; i < 70; i++)
       STARS.push([(rnd() * W) | 0, (rnd() * H) | 0, chars[(rnd() * 4) | 0], 0.02 + rnd() * 0.10]);
@@ -207,64 +340,497 @@
     return out.join("\n");
   }
 
-  /* ---------- 动画循环 ---------- */
-  var cv = document.getElementById("screen");
-  var cctx = cv.getContext("2d");
-  var COLORS = { "#": "#6ecdf5", "+": "#3c82c8", ".": "#1e4678",
-                 "*": "#c8e6ff", ":": "#78a0d2" };
-  var CW = 6, CH = 10;               // 字符单元：480x240 = 80x24 网格
-  cctx.font = "10px Consolas, 'Courier New', monospace";
-  cctx.textBaseline = "top";
-
-  function drawFrame(text) {
-    cctx.fillStyle = "#06101e";
-    cctx.fillRect(0, 0, cv.width, cv.height);
-    for (var i = 0; i < text.length; i++) {
-      var ch = text[i];
-      if (ch === "\n" || ch === " ") continue;
-      var col = COLORS[ch];
-      if (!col) continue;
-      cctx.fillStyle = col;
-      cctx.fillText(ch, (i % (W + 1)) * CW, ((i / (W + 1)) | 0) * CH);
-    }
-  }
-
-  var fps = 20, running = true, frame = 0;
+  var cubeFps = 20, cubeRunning = true, frame = 0;
   var last = 0, acc = 0;
-
-  function loop(ts) {
-    requestAnimationFrame(loop);
-    if (!running) return;
+  function cubeLoop(ts) {
+    requestAnimationFrame(cubeLoop);
+    if (!cubeRunning) return;
     if (!last) last = ts;
     acc += ts - last;
     last = ts;
-    var step = 1000 / fps;
+    var step = 1000 / cubeFps;
     while (acc >= step) {
       acc -= step;
       frame++;
-      drawFrame(renderFrame(frame / fps));
+      drawFrame(renderFrame(frame / cubeFps));
     }
   }
 
   var btnToggle = document.getElementById("btnToggle");
   var speed = document.getElementById("speed");
   var fpsLabel = document.getElementById("fpsLabel");
-
   btnToggle.addEventListener("click", function () {
-    running = !running;
-    btnToggle.textContent = running ? "暂停" : "继续";
+    cubeRunning = !cubeRunning;
+    btnToggle.textContent = cubeRunning ? "暂停" : "继续";
   });
   speed.addEventListener("input", function () {
-    fps = parseInt(speed.value, 10);
-    fpsLabel.textContent = fps;
+    cubeFps = parseInt(speed.value, 10);
+    fpsLabel.textContent = cubeFps;
   });
   document.getElementById("btnSpeed1").addEventListener("click", function () {
-    speed.value = 20; fps = 20; fpsLabel.textContent = "20";
+    speed.value = 20; cubeFps = 20; fpsLabel.textContent = "20";
   });
 
-  // 立即渲染首帧（不依赖 rAF 时序，任何环境打开即有画面）
+  /* ================================================================
+   *  视频转 ASCII 模式
+   * ================================================================ */
+  var video = document.getElementById("srcVideo");
+  var fileInput = document.getElementById("fileInput");
+  var status = document.getElementById("status");
+  var charsetName = "standard";
+  var videoLoaded = false, videoPlaying = false, videoName = "";
+  var vidCols = 80, vidRows = 25, vidFps = 12, vidGain = 1.0, vidInvert = false;
+  var autoRowsFlag = true;   // 宽度变化时高度自动联动（用户手动调过高度后关闭）
+
+  // 参数控件
+  var elCols = document.getElementById("vidCols"), elColsL = document.getElementById("colLabel");
+  var elRows = document.getElementById("vidRows"), elRowsL = document.getElementById("rowLabel");
+  var elFps  = document.getElementById("vidFps"),  elFpsL  = document.getElementById("fps2Label");
+  var elGain = document.getElementById("vidGain"), elGainL = document.getElementById("gainLabel");
+  var elCharset = document.getElementById("vidCharset");
+  var elInvert = document.getElementById("vidInvert");
+  var btnVideoPlay = document.getElementById("btnVideoPlay");
+  var btnVideoRestart = document.getElementById("btnVideoRestart");
+  var btnExportTxt = document.getElementById("btnExportTxt");
+  var btnExportGif = document.getElementById("btnExportGif");
+
+  var offCanvas = document.createElement("canvas");
+  var offCtx = offCanvas.getContext("2d", { willReadFrequently: true });
+
+  function setStatus(s) { status.textContent = s; }
+
+  function readParams() {
+    vidCols = parseInt(elCols.value, 10);
+    vidRows = parseInt(elRows.value, 10);
+    vidFps  = parseInt(elFps.value, 10);
+    vidGain = parseInt(elGain.value, 10) / 100;
+    vidInvert = elInvert.checked;
+    charsetName = elCharset.value;
+    elColsL.textContent = vidCols;
+    elRowsL.textContent = vidRows;
+    elFpsL.textContent = vidFps;
+    elGainL.textContent = elGain.value;
+  }
+
+  function applyParams() {
+    readParams();
+    if (videoLoaded) {
+      setCanvasSize(vidCols, vidRows);
+      if (!video.paused) drawFrame(frameToAscii());
+    }
+  }
+
+  function frameToAscii() {
+    if (!videoLoaded || !video.videoWidth) return "";
+    var w = offCanvas.width = vidCols, h = offCanvas.height = vidRows;
+    offCtx.drawImage(video, 0, 0, w, h);
+    var d = offCtx.getImageData(0, 0, w, h).data;
+    var chars = CHARSETS[charsetName];
+    var n = chars.length, out = [], line = [];
+    for (var i = 0; i < w * h; i++) {
+      var p = i << 2;
+      var luma = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
+      luma = (luma - 128) * vidGain + 128;
+      if (luma < 0) luma = 0; else if (luma > 255) luma = 255;   // 必须 clamp，越界会取到 undefined 字符
+      if (vidInvert) luma = 255 - luma;
+      var idx = (luma / 256) * n | 0;
+      if (idx >= n) idx = n - 1;
+      line.push(chars[idx]);
+      if (line.length === w) { out.push(line.join("")); line = []; }
+    }
+    return out.join("\n");
+  }
+
+  // 抽帧播放循环
+  var lastVideoTs = 0;
+  function videoLoop(ts) {
+    requestAnimationFrame(videoLoop);
+    if (!videoPlaying) return;
+    if (!lastVideoTs) lastVideoTs = ts;
+    if (ts - lastVideoTs >= 1000 / vidFps) {
+      lastVideoTs = ts;
+      if (video.readyState >= 2) drawFrame(frameToAscii());
+    }
+  }
+
+  // 导入
+  document.getElementById("btnImport").addEventListener("click", function () {
+    fileInput.click();
+  });
+  fileInput.addEventListener("change", function () {
+    var f = fileInput.files && fileInput.files[0];
+    if (!f) return;
+    videoName = f.name;
+    video.src = URL.createObjectURL(f);
+    video.load();
+    videoLoaded = false;
+    videoPlaying = false;
+    btnVideoPlay.textContent = "播放";
+    btnVideoPlay.disabled = true;
+    btnVideoRestart.disabled = true;
+    btnExportTxt.disabled = true;
+    btnExportGif.disabled = true;
+    setStatus("加载中…");
+    video.onloadedmetadata = function () {
+      videoLoaded = true;
+      autoRowsFlag = true;
+      // 自动按宽高比算行数（字符纵横比校正 ~0.55）
+      var vw = video.videoWidth, vh = video.videoHeight;
+      var autoRows = Math.max(4, Math.min(60, Math.round(vidCols * (vh / vw) * 0.55)));
+      elRows.value = autoRows;
+      readParams();
+      setCanvasSize(vidCols, vidRows);
+      video.play().then(function () {
+        videoPlaying = true;
+        btnVideoPlay.textContent = "暂停";
+      }).catch(function () { /* 部分浏览器 muted+playsinline 仍拒绝，静默 */ });
+      btnVideoPlay.disabled = false;
+      btnVideoRestart.disabled = false;
+      btnExportTxt.disabled = false;
+      btnExportGif.disabled = false;
+      setStatus("已加载 " + videoName + " · " + vidCols + "×" + vidRows + " · " + vidFps + "fps");
+      drawFrame(frameToAscii());
+    };
+    video.onerror = function () {
+      videoLoaded = false;
+      setStatus("视频加载失败，请换一个文件试试");
+    };
+  });
+
+  btnVideoPlay.addEventListener("click", function () {
+    if (!videoLoaded) return;
+    if (videoPlaying) {
+      video.pause(); videoPlaying = false; btnVideoPlay.textContent = "播放";
+    } else {
+      video.play().then(function () {
+        videoPlaying = true; btnVideoPlay.textContent = "暂停";
+      }).catch(function () {});
+    }
+  });
+  btnVideoRestart.addEventListener("click", function () {
+    if (!videoLoaded) return;
+    video.currentTime = 0;
+    if (!videoPlaying) {
+      video.play().then(function () { videoPlaying = true; btnVideoPlay.textContent = "暂停"; }).catch(function () {});
+    }
+  });
+
+  [elRows, elFps, elGain].forEach(function (el) {
+    el.addEventListener("input", applyParams);
+  });
+  elCols.addEventListener("input", function () {
+    if (autoRowsFlag && videoLoaded) {
+      var vw = video.videoWidth, vh = video.videoHeight;
+      elRows.value = Math.max(4, Math.min(60, Math.round(parseInt(elCols.value, 10) * (vh / vw) * 0.55)));
+      document.getElementById("rowLabel").textContent = elRows.value;
+    }
+    applyParams();
+  });
+  elRows.addEventListener("input", function () { autoRowsFlag = false; applyParams(); });
+  elCharset.addEventListener("change", applyParams);
+  elInvert.addEventListener("change", applyParams);
+
+  // 模式切换
+  var tabCube = document.getElementById("tabCube");
+  var tabVideo = document.getElementById("tabVideo");
+  function setMode(m) {
+    mode = m;
+    tabCube.classList.toggle("active", m === "cube");
+    tabVideo.classList.toggle("active", m === "video");
+    document.getElementById("cubeControls").classList.toggle("hidden", m !== "cube");
+    document.getElementById("videoControls").classList.toggle("hidden", m !== "video");
+    if (m === "cube") {
+      cols = 80; rows = 24; W = 80; H = 24;
+      setCanvasSize(80, 24);
+      drawFrame(renderFrame(frame / cubeFps));
+      if (videoLoaded) { video.pause(); videoPlaying = false; btnVideoPlay.textContent = "播放"; }
+    } else {
+      readParams();
+      if (videoLoaded) {
+        setCanvasSize(vidCols, vidRows);
+        drawFrame(frameToAscii());
+      } else {
+        setStatus("点「导入视频」选择一个本地视频文件");
+      }
+    }
+  }
+  tabCube.addEventListener("click", function () { setMode("cube"); });
+  tabVideo.addEventListener("click", function () { setMode("video"); });
+
+  /* ================================================================
+   *  导出
+   * ================================================================ */
+  // 按时间轴均匀采样（本地 blob 可 seek），onFrame(t, i)
+  function sampleAll(fps, onFrame) {
+    return new Promise(function (resolve) {
+      if (!videoLoaded || !isFinite(video.duration)) { resolve(0); return; }
+      if (!video.paused) video.pause();   // 采样必须基于静止帧，否则 seek 永远追不上
+      var total = Math.max(1, Math.ceil(video.duration * fps));
+      var i = 0, target = 0, started = false;
+      function step() {
+        if (i >= total) { resolve(total); return; }
+        target = Math.min(i / fps, video.duration - 0.02);
+        if (target < 0) target = 0;
+        if (started && Math.abs(video.currentTime - target) < 0.01) {
+          onFrame(target, i, total);
+          i++; started = false;
+          setTimeout(step, 0);
+        } else {
+          started = true;
+          try { video.currentTime = target; } catch (e) {}
+          setTimeout(step, 25);
+        }
+      }
+      step();
+    });
+  }
+
+  function buildTxt(frames) {
+    var L = [];
+    var head = ["; ASCII 动画导出", "; 来源: " + videoName,
+                "; 尺寸: " + vidCols + " x " + vidRows,
+                "; 帧率: " + vidFps + " fps", "; 字符集: " + charsetName,
+                "; 对比: " + elGain.value + "%" + (vidInvert ? " · 反相" : ""),
+                "; 帧数: " + frames.length,
+                "; 生成时间: " + new Date().toLocaleString("zh-CN")];
+    L.push(head.join("\n"));
+    for (var i = 0; i < frames.length; i++) {
+      L.push("");
+      L.push("--- frame " + (i + 1) + "/" + frames.length + "  t=" + frames[i][0].toFixed(2) + "s ---");
+      L.push(frames[i][1]);
+    }
+    return L.join("\n");
+  }
+
+  /* ---------- 手写 GIF89a 编码器（零依赖）
+   * LZW 语义镜像 Pillow GifEncode.c（与 giflib 双向兼容）：
+   * - 每输出码建条目（含首码）
+   * - 宽度递增：nextCode > maxCode 时（maxCode = 2*clear-1 起每次 *2+1）
+   * - 字典满（4096）时输出 clear 并重置
+   * ---------- */
+  function lzwCompress(indices, minCodeSize) {
+    var clearCode = 1 << minCodeSize, eoiCode = clearCode + 1;
+    var nextCode = eoiCode + 1;
+    var maxCode = 2 * clearCode - 1;
+    var codeSize = minCodeSize + 1;
+    var dict = new Map();
+    var out = [], acc = 0, nbits = 0;
+    function emit(code) {
+      acc |= code << nbits;
+      nbits += codeSize;
+      while (nbits >= 8) { out.push(acc & 255); acc >>= 8; nbits -= 8; }
+    }
+    emit(clearCode);
+    var head = indices[0];
+    for (var i = 1; i < indices.length; i++) {
+      var tail = indices[i];
+      var key = head * 4096 + tail;          // head < 4096, tail < 256 → 无冲突
+      var entry = dict.get(key);
+      if (entry !== undefined) { head = entry; continue; }
+      emit(head);                            // 输出当前前缀码
+      if (nextCode < 4096) {
+        dict.set(key, nextCode);
+        if (nextCode > maxCode) { maxCode = maxCode * 2 + 1; codeSize++; }
+        nextCode++;
+      } else {
+        emit(clearCode);                     // 字典满：发 clear 重置
+        dict = new Map();
+        nextCode = eoiCode + 1;
+        maxCode = 2 * clearCode - 1;
+        codeSize = minCodeSize + 1;
+      }
+      head = tail;
+    }
+    emit(head);
+    emit(eoiCode);
+    if (nbits > 0) out.push(acc & 255);
+    return out;
+  }
+
+  // 4096 色查表：高 4 位 RGB → 最近调色板索引
+  var nearTable = null;
+  function buildNearTable() {
+    if (nearTable) return;
+    nearTable = new Uint8Array(4096);
+    for (var i = 0; i < 4096; i++) {
+      var r = (i >> 8) & 15, g = (i >> 4) & 15, b = i & 15;
+      var best = 0, bd = 1e9;
+      for (var j = 0; j < PALETTE.length; j++) {
+        var dr = (r << 4) - PALETTE[j][0], dg = (g << 4) - PALETTE[j][1], db = (b << 4) - PALETTE[j][2];
+        var dist = dr * dr + dg * dg + db * db;
+        if (dist < bd) { bd = dist; best = j; }
+      }
+      nearTable[i] = best;
+    }
+  }
+
+  function renderGifFrame(text) {
+    var w = vidCols * CW, h = vidRows * CH;
+    var c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    var ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.fillStyle = "#06101e";
+    ctx.fillRect(0, 0, w, h);
+    ctx.font = "10px Consolas, 'Courier New', monospace";
+    ctx.textBaseline = "top";
+    var chars = CHARSETS[charsetName];
+    var step = 6 / (chars.length - 1);
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (ch === "\n" || ch === " ") continue;
+      var idx = chars.indexOf(ch);
+      if (idx < 0) continue;
+      ctx.fillStyle = SHADES[Math.round(idx * step)];
+      ctx.fillText(ch, (i % (vidCols + 1)) * CW, ((i / (vidCols + 1)) | 0) * CH);
+    }
+    var img = ctx.getImageData(0, 0, w, h);
+    var d = img.data;
+    var px = new Uint8Array(w * h);
+    for (var p = 0, q = 0; p < d.length; p += 4, q++) {
+      var ri = (d[p] >> 4) & 15, gi = (d[p + 1] >> 4) & 15, bi = (d[p + 2] >> 4) & 15;
+      px[q] = nearTable[(ri << 8) | (gi << 4) | bi];
+    }
+    return px;
+  }
+
+  function buildGif(frames, fps) {
+    var w = vidCols * CW, h = vidRows * CH;
+    var out = [];
+    function pb(b) { out.push(b & 255); }
+    function pbs(arr) { for (var i = 0; i < arr.length; i++) pb(arr[i]); }
+    // header + LSD
+    pbs([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]);
+    pb(w); pb(w >> 8); pb(h); pb(h >> 8);
+    var n = PALETTE.length;
+    var cb = Math.ceil(Math.log2(n));
+    pb(0x80 | ((cb - 1) << 4) | (cb - 1));
+    pb(0); pb(0);
+    for (var i = 0; i < n; i++) { pb(PALETTE[i][0]); pb(PALETTE[i][1]); pb(PALETTE[i][2]); }
+    var minCodeSize = Math.max(2, cb);
+    var delayCs = Math.max(2, Math.min(6500, Math.round(100 / fps)));
+    for (var f = 0; f < frames.length; f++) {
+      // GCE
+      pbs([0x21, 0xF9, 0x04, 0x00]);
+      pb(delayCs); pb(delayCs >> 8);
+      pb(0); pb(0);
+      // 图像描述符（无局部色表）
+      pbs([0x2C, 0, 0, 0, 0]);
+      pb(w); pb(w >> 8); pb(h); pb(h >> 8);
+      pb(0);
+      // LZW 数据
+      var lzw = lzwCompress(frames[f], minCodeSize);
+      pb(minCodeSize);
+      for (var o = 0; o < lzw.length; o += 255) {
+        var n2 = Math.min(255, lzw.length - o);
+        pb(n2);
+        for (var k2 = 0; k2 < n2; k2++) pb(lzw[o + k2]);
+      }
+      pb(0);
+    }
+    pb(0x3B);
+    return new Blob([new Uint8Array(out)], { type: "image/gif" });
+  }
+
+  // 导出（暴露给测试与下载按钮）
+  function exportTxtBlob() {
+    var frames = [];
+    return sampleAll(vidFps, function (t, i, total) {
+      frames.push([t, frameToAscii()]);
+      if (i % 10 === 0) setStatus("导出 TXT 中… " + i + "/" + total);
+    }).then(function (total) {
+      var blob = new Blob([buildTxt(frames)], { type: "text/plain;charset=utf-8" });
+      setStatus("TXT 导出完成（" + total + " 帧）");
+      return blob;
+    });
+  }
+
+  function exportGifBlob() {
+    // GIF 最多 480 帧，超出自动均匀降采样
+    var fps = vidFps;
+    var frames = [];
+    return sampleAll(fps, function (t, i, total) {
+      frames.push([t, frameToAscii()]);
+      if (i % 10 === 0) setStatus("导出 GIF 中… " + i + "/" + total);
+    }).then(function (total) {
+      var keep = frames;
+      if (total > 480) {
+        keep = [];
+        for (var k = 0; k < 480; k++) keep.push(frames[Math.floor(k * total / 480)]);
+        fps = fps * keep.length / total;
+        setStatus("视频较长，GIF 已压缩为 480 帧");
+      }
+      buildNearTable();
+      var pxFrames = [];
+      for (var f = 0; f < keep.length; f++) {
+        pxFrames.push(renderGifFrame(keep[f][1]));
+        if (f % 10 === 0) setStatus("GIF 渲染中… " + f + "/" + keep.length);
+      }
+      var blob = buildGif(pxFrames, Math.max(2, Math.round(fps)));
+      setStatus("GIF 导出完成（" + keep.length + " 帧）");
+      return blob;
+    });
+  }
+
+  function download(blob, name) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 2000);
+  }
+
+  function busyExport() {
+    var wasPlaying = videoPlaying;
+    if (wasPlaying) { video.pause(); videoPlaying = false; btnVideoPlay.textContent = "播放"; }
+    btnExportTxt.disabled = true;
+    btnExportGif.disabled = true;
+    return function done() {
+      btnExportTxt.disabled = !videoLoaded;
+      btnExportGif.disabled = !videoLoaded;
+      if (wasPlaying) {
+        video.play().then(function () { videoPlaying = true; btnVideoPlay.textContent = "暂停"; }).catch(function () {});
+      }
+    };
+  }
+
+  btnExportTxt.addEventListener("click", function () {
+    if (!videoLoaded) return;
+    var done = busyExport();
+    exportTxtBlob().then(function (blob) {
+      var base = videoName.replace(/\.[^.]+$/, "") || "ascii";
+      download(blob, base + "-ascii.txt");
+      done();
+    });
+  });
+  btnExportGif.addEventListener("click", function () {
+    if (!videoLoaded) return;
+    var done = busyExport();
+    exportGifBlob().then(function (blob) {
+      var base = videoName.replace(/\.[^.]+$/, "") || "ascii";
+      download(blob, base + "-ascii.gif");
+      done();
+    });
+  });
+
+  /* ================================================================
+   *  启动
+   * ================================================================ */
+  setCanvasSize(80, 24);
   drawFrame(renderFrame(0));
-  requestAnimationFrame(loop);
+  requestAnimationFrame(cubeLoop);
+  requestAnimationFrame(videoLoop);
+
+  // 供自动化测试调用
+  window.ASCII_EXPORT = {
+    exportTxt: exportTxtBlob,
+    exportGif: exportGifBlob,
+    getState: function () {
+      return { mode: mode, cols: vidCols, rows: vidRows, fps: vidFps,
+               charset: charsetName, invert: vidInvert, loaded: videoLoaded,
+               videoName: videoName, playing: videoPlaying };
+    }
+  };
 })();
 </script>
 </body>
