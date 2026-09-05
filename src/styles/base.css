@@ -1,4 +1,4 @@
-/* ═══════════ base.css — 重置 / 背景层 / 全局装饰 ═══════════ */
+/* ═══════════ base.css — 重置 / 背景层 / 全局装饰（扁平圆角） ═══════════ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -141,9 +141,9 @@ main {
   font-weight: 700;
   letter-spacing: 0.28em;
   color: var(--aqua);
-  background: var(--bg);
+  background: var(--aqua-soft);
+  border: 1px solid var(--aqua-soft);
   border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-3);
   padding: 7px 20px;
   margin-left: 2px;
 }

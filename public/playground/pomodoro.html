@@ -3,15 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>新拟态时钟 · 番茄钟 · 非茗工坊</title>
+<title>番茄钟 · 时钟 · 非茗工坊</title>
 <style>
   :root {
     --bg: #e6f0fa;
-    --surface: #dbe7f3;
-    --shadow-dk: #b9c9d9;
-    --shadow-lt: #ffffff;
+    --card: #ffffff;
     --accent: #3389d1;
     --accent-soft: #7fb8e8;
+    --accent-shadow: rgba(51, 137, 209, 0.32);
+    --line: rgba(51, 80, 107, 0.12);
+    --line-strong: rgba(51, 80, 107, 0.22);
+    --shadow-flat: rgba(51, 80, 107, 0.18);
     --text: #33506b;
     --text-dim: #7d95ad;
     --danger: #d16a5f;
@@ -38,8 +40,8 @@
     text-decoration: none;
     padding: 8px 16px;
     border-radius: 999px;
-    background: var(--surface);
-    box-shadow: 5px 5px 12px var(--shadow-dk), -5px -5px 12px var(--shadow-lt);
+    background: var(--card);
+    box-shadow: 0 4px 14px -6px var(--shadow-flat);
     transition: color .2s;
     z-index: 10;
   }
@@ -56,9 +58,8 @@
     width: 300px;
     height: 300px;
     border-radius: 50%;
-    background: var(--surface);
-    box-shadow: 12px 12px 28px var(--shadow-dk), -12px -12px 28px var(--shadow-lt),
-                inset 3px 3px 8px var(--shadow-dk), inset -3px -3px 8px var(--shadow-lt);
+    background: var(--card);
+    border: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -72,7 +73,6 @@
     letter-spacing: 3px;
     font-variant-numeric: tabular-nums;
     color: var(--text);
-    text-shadow: 1px 1px 2px var(--shadow-lt);
   }
   .date {
     font-size: 14px;
@@ -92,11 +92,10 @@
   }
   /* ---------- 番茄钟 ---------- */
   .card {
-    background: var(--surface);
+    background: var(--card);
     border-radius: 24px;
     padding: 26px 34px 30px;
-    box-shadow: 8px 8px 20px var(--shadow-dk), -8px -8px 20px var(--shadow-lt),
-                inset 2px 2px 5px var(--shadow-dk), inset -2px -2px 5px var(--shadow-lt);
+    border: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -111,8 +110,8 @@
     font-size: 13px;
     font-weight: 600;
     color: var(--text-dim);
-    background: var(--surface);
-    box-shadow: 4px 4px 10px var(--shadow-dk), -4px -4px 10px var(--shadow-lt);
+    background: var(--card);
+    box-shadow: 0 4px 14px -6px var(--shadow-flat);
     cursor: pointer;
     user-select: none;
     transition: all .2s;
@@ -120,8 +119,8 @@
   }
   .mode-tab.active {
     color: #fff;
-    background: linear-gradient(145deg, var(--accent), var(--accent-soft));
-    box-shadow: 4px 4px 12px var(--shadow-dk), -4px -4px 12px var(--shadow-lt);
+    background: var(--accent);
+    box-shadow: 0 4px 14px -6px var(--shadow-flat);
   }
   .timer {
     font-size: 64px;
@@ -136,18 +135,18 @@
     width: 100%;
     height: 10px;
     border-radius: 6px;
-    background: var(--surface);
-    box-shadow: inset 3px 3px 6px var(--shadow-dk), inset -3px -3px 6px var(--shadow-lt);
+    background: var(--card);
+    border: 1px solid var(--line);
     overflow: hidden;
   }
   .progress-fill {
     height: 100%;
     width: 0%;
     border-radius: 6px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+    background: var(--accent);
     transition: width .3s linear;
   }
-  .progress-fill.break { background: linear-gradient(90deg, #4f9e80, #7fc9a8); }
+  .progress-fill.break { background: #4f9e80; }
   .controls { display: flex; gap: 14px; }
   .btn {
     padding: 10px 22px;
@@ -156,20 +155,20 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--text);
-    background: var(--surface);
-    box-shadow: 5px 5px 12px var(--shadow-dk), -5px -5px 12px var(--shadow-lt);
+    background: var(--card);
+    box-shadow: 0 4px 14px -6px var(--shadow-flat);
     cursor: pointer;
     transition: all .15s;
     font-family: inherit;
   }
   .btn:hover { color: var(--accent); }
   .btn:active {
-    box-shadow: inset 4px 4px 10px var(--shadow-dk), inset -4px -4px 10px var(--shadow-lt);
+    transform: scale(0.96);
     color: var(--accent);
   }
   .btn.primary {
     color: #fff;
-    background: linear-gradient(145deg, var(--accent), var(--accent-soft));
+    background: var(--accent);
   }
   .btn.primary:active { color: #fff; }
   .pomo-count { font-size: 13px; color: var(--text-dim); letter-spacing: 1px; }
@@ -179,7 +178,7 @@
 </head>
 <body>
   <a class="back" href="../index.html">← 返回首页</a>
-  <h1>Neumorphic Clock · Pomodoro</h1>
+  <h1>Pomodoro · Clock</h1>
 
   <div class="clock">
     <div class="ring" id="secRing"></div>
@@ -201,7 +200,7 @@
     <div class="pomo-count">今日已完成 <b id="pomoCount">0</b> 个番茄</div>
   </div>
 
-  <footer>水蓝新拟态 · 纯 HTML/CSS/JS 单文件 · 番茄计数自动保存</footer>
+  <footer>水蓝扁平 · 纯 HTML/CSS/JS 单文件 · 番茄计数自动保存</footer>
 
 <script>
 (function () {

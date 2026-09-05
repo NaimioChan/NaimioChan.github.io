@@ -6,9 +6,9 @@
 <title>水蓝声波 · 音乐频谱可视化</title>
 <style>
   :root{
-    --bg:#e6f0fa; --surface:#dbe7f3;
-    --shadow-dk:#b9c9d9; --shadow-lt:#ffffff;
-    --accent:#3389d1; --accent-soft:#7fb8e8;
+    --bg:#e6f0fa; --card:#ffffff;
+    --accent:#3389d1; --accent-soft:#7fb8e8; --accent-shadow:rgba(51,137,209,.32);
+    --line:rgba(51,80,107,.12); --line-strong:rgba(51,80,107,.22); --shadow-flat:rgba(51,80,107,.18);
     --text:#33506b; --text-dim:#7d95ad;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -19,68 +19,68 @@
     min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
   }
   .card{
-    background:var(--surface);border-radius:26px;padding:24px 28px;width:900px;
-    box-shadow:8px 8px 20px var(--shadow-dk), -8px -8px 20px var(--shadow-lt);
+    background:var(--card);border-radius:26px;padding:24px 28px;width:900px;
+    box-shadow: 0 10px 26px -12px var(--shadow-flat);
   }
   h1{font-size:20px;letter-spacing:4px;color:var(--accent);margin-bottom:2px;}
   .sub{font-size:12px;color:var(--text-dim);letter-spacing:1px;margin-bottom:14px;}
   canvas#viz{
-    display:block;width:100%;height:340px;border-radius:18px;background:linear-gradient(180deg,#f2f7fc,#e3edf7);
-    box-shadow:inset 4px 4px 12px var(--shadow-dk), inset -4px -4px 12px var(--shadow-lt);
+    display:block;width:100%;height:340px;border-radius:18px;background:#f2f7fc;
+    border: 1px solid var(--line);
   }
   .row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap;}
   .btn{
-    padding:8px 18px;border:none;border-radius:14px;background:var(--surface);color:var(--text-dim);
+    padding:8px 18px;border:none;border-radius:14px;background:var(--card);color:var(--text-dim);
     font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;font-family:inherit;
-    box-shadow:5px 5px 10px var(--shadow-dk), -5px -5px 10px var(--shadow-lt);
+    box-shadow: 0 4px 14px -6px var(--shadow-flat);
     transition:color .15s, box-shadow .15s;
   }
   .btn:hover{color:var(--accent);}
-  .btn.on{color:var(--accent);box-shadow:inset 3px 3px 8px var(--shadow-dk), inset -3px -3px 8px var(--shadow-lt);}
-  .btn.primary{color:#fff;background:linear-gradient(145deg,var(--accent),var(--accent-soft));
-    box-shadow:4px 4px 10px rgba(51,137,209,.35), -4px -4px 10px rgba(255,255,255,.6);}
+  .btn.on{color:var(--accent);border: 1px solid var(--accent);}
+  .btn.primary{color:#fff;background:var(--accent);
+    box-shadow: 0 4px 14px -6px var(--accent-shadow);}
   .btn.primary:active{transform:translateY(1px);}
   .grp{display:flex;gap:6px;align-items:center;}
   .lbl{font-size:11px;color:var(--text-dim);letter-spacing:2px;margin-right:2px;}
   input[type=range]{-webkit-appearance:none;width:120px;height:6px;border-radius:3px;background:var(--bg);
-    box-shadow:inset 2px 2px 5px var(--shadow-dk), inset -2px -2px 5px var(--shadow-lt);outline:none;}
+    border: 1px solid var(--line);outline:none;}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
-    background:linear-gradient(145deg,var(--accent-soft),var(--accent));box-shadow:0 0 10px rgba(51,137,209,.5);cursor:pointer;}
+    background:var(--accent);box-shadow: 0 4px 14px -6px var(--shadow-flat);cursor:pointer;}
   #songName{font-size:13px;color:var(--text);margin-left:auto;letter-spacing:1px;}
   #songName small{color:var(--text-dim);}
   /* 播放进度条 */
   .seek-row{display:flex;align-items:center;gap:10px;margin-top:14px;}
   #seekBar{-webkit-appearance:none;flex:1;height:6px;border-radius:3px;background:var(--bg);
-    box-shadow:inset 2px 2px 5px var(--shadow-dk), inset -2px -2px 5px var(--shadow-lt);outline:none;cursor:pointer;}
+    border: 1px solid var(--line);outline:none;cursor:pointer;}
   #seekBar::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
-    background:linear-gradient(145deg,var(--accent-soft),var(--accent));box-shadow:0 0 10px rgba(51,137,209,.5);cursor:pointer;}
+    background:var(--accent);box-shadow: 0 4px 14px -6px var(--shadow-flat);cursor:pointer;}
   .seek-time{font-size:12px;color:var(--text-dim);font-variant-numeric:tabular-nums;letter-spacing:1px;min-width:40px;text-align:center;}
   #dropHint{font-size:12px;color:var(--text-dim);letter-spacing:1px;margin-top:10px;text-align:center;
     border:1px dashed rgba(51,137,209,.4);border-radius:12px;padding:8px;cursor:pointer;background:var(--bg);
-    box-shadow:inset 2px 2px 5px var(--shadow-dk), inset -2px -2px 5px var(--shadow-lt);}
+    }
   #dropHint:hover{border-color:var(--accent);color:var(--accent);}
   .freq-tag{font-size:11px;color:var(--text-dim);letter-spacing:1px;}
   /* 导出面板 */
   .export-box{
     margin-top:16px;border-radius:16px;background:var(--bg);
     padding:14px 18px;
-    box-shadow:inset 4px 4px 10px var(--shadow-dk), inset -4px -4px 10px var(--shadow-lt);
+    border: 1px solid var(--line);
   }
   .export-box h2{font-size:14px;color:var(--accent);letter-spacing:3px;margin-bottom:10px;}
   .export-grid{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
   .exp-item{display:flex;flex-direction:column;gap:4px;}
   .exp-item .lbl{font-size:11px;color:var(--text-dim);letter-spacing:2px;}
   .exp-item input[type=number]{width:72px;padding:6px 8px;border:none;border-radius:10px;
-    background:var(--surface);color:var(--text);font-size:13px;text-align:center;
-    box-shadow:inset 2px 2px 5px var(--shadow-dk), inset -2px -2px 5px var(--shadow-lt);outline:none;font-family:inherit;}
-  .exp-item select{padding:6px 8px;border:none;border-radius:10px;background:var(--surface);color:var(--text);
-    font-size:13px;box-shadow:inset 2px 2px 5px var(--shadow-dk), inset -2px -2px 5px var(--shadow-lt);outline:none;font-family:inherit;}
+    background:var(--card);color:var(--text);font-size:13px;text-align:center;
+    outline:none;font-family:inherit;}
+  .exp-item select{padding:6px 8px;border:none;border-radius:10px;background:var(--card);color:var(--text);
+    font-size:13px;outline:none;font-family:inherit;}
   .exp-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center;}
   #expProgress{font-size:12px;color:var(--accent);letter-spacing:1px;min-height:16px;}
 </style>
 </head>
 <body>
-<a class="back" href="../index.html" style="position:absolute;top:16px;left:16px;font-size:13px;color:var(--muted);text-decoration:none;letter-spacing:1px;z-index:9;">← 返回首页</a>
+<a class="back" href="../index.html" style="position:absolute;top:16px;left:16px;font-size:13px;color:var(--text-dim);text-decoration:none;letter-spacing:1px;z-index:9;">← 返回首页</a>
 <div class="card">
   <h1>水蓝声波</h1>
   <div class="sub">AQUA WAVEFORM · Web Audio 频谱可视化（导入本地音频）</div>

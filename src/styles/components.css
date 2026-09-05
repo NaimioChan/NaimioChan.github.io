@@ -1,4 +1,4 @@
-/* ═══════════ components.css — 组件与区块 ═══════════ */
+/* ═══════════ components.css — 组件与区块（扁平圆角） ═══════════ */
 
 /* ── 顶栏 ── */
 .topbar {
@@ -12,20 +12,20 @@
   gap: 26px;
   max-width: 980px;
   width: calc(100% - 40px);
-  padding: 13px 18px;
+  padding: 10px 16px;
   border-radius: var(--radius-pill);
-  background: var(--bg);
-  box-shadow: var(--shadow-2);
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-rest);
 }
 .logo {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   flex: none;
   display: block;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--bg);
-  box-shadow: var(--shadow-3);
+  border: 1px solid var(--line);
   transition: transform 0.25s var(--ease-spring);
 }
 .logo img {
@@ -34,8 +34,8 @@
   object-fit: cover;
   display: block;
 }
-.logo:hover { color: var(--aqua-deep); transform: rotate(-8deg) scale(1.05); }
-.logo:active { box-shadow: var(--shadow-inset-sm); transform: scale(0.96); }
+.logo:hover { transform: rotate(-8deg) scale(1.05); }
+.logo:active { transform: scale(0.96); }
 
 .nav {
   display: flex;
@@ -48,9 +48,9 @@
   color: var(--ink-soft);
   padding: 7px 14px;
   border-radius: var(--radius-pill);
-  transition: color 0.22s, box-shadow 0.22s;
+  transition: color 0.22s, background-color 0.22s;
 }
-.nav a:hover { color: var(--aqua-deep); box-shadow: var(--shadow-3); }
+.nav a:hover { color: var(--aqua-deep); background: var(--aqua-soft); }
 
 .topbar-actions { display: flex; gap: 8px; flex: none; }
 .topbar-actions button {
@@ -58,15 +58,14 @@
   height: 38px;
   display: grid;
   place-items: center;
-  border: 0;
+  border: 1px solid var(--line);
   border-radius: 50%;
-  background: var(--bg);
+  background: transparent;
   color: var(--ink-soft);
-  box-shadow: var(--shadow-3);
-  transition: color 0.22s, box-shadow 0.22s, transform 0.18s var(--ease-spring);
+  transition: color 0.22s, background-color 0.22s, transform 0.18s var(--ease-spring);
 }
-.topbar-actions button:hover { color: var(--aqua); }
-.topbar-actions button:active { box-shadow: var(--shadow-inset-sm); transform: scale(0.94); }
+.topbar-actions button:hover { color: var(--aqua); background: var(--aqua-soft); }
+.topbar-actions button:active { transform: scale(0.94); }
 .topbar-actions .icon-moon { display: none; }
 :root[data-theme="dark"] .topbar-actions .icon-sun { display: none; }
 :root[data-theme="dark"] .topbar-actions .icon-moon { display: block; }
@@ -88,9 +87,6 @@
   line-height: 1.02;
   letter-spacing: 0.02em;
   color: var(--aqua);
-  text-shadow:
-    3px 3px 7px var(--n-shade),
-    -3px -3px 7px var(--n-tint);
   user-select: none;
 }
 .hero-name-row { display: block; }
@@ -129,13 +125,16 @@
   margin: 54px auto 0;
   padding: 32px 36px;
   border-radius: var(--radius-lg);
-  background: var(--bg);
-  box-shadow: var(--shadow-1);
-  transition: box-shadow 0.3s, transform 0.14s var(--ease-out);
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-rest);
+  transition: box-shadow 0.3s, border-color 0.3s, transform 0.14s var(--ease-out);
   will-change: transform;
 }
-.announce-card:hover { box-shadow: var(--shadow-2), 0 26px 52px -20px var(--aqua-glow); }
-.announce-card:active { box-shadow: var(--shadow-inset); }
+.announce-card:hover {
+  border-color: var(--aqua-soft);
+  box-shadow: var(--shadow-pop), var(--shadow-lift);
+}
 .announce-cover {
   display: grid;
   place-items: center;
@@ -143,10 +142,10 @@
   height: 140px;
   margin: 0 auto 22px;
   border-radius: 20px;
-  background: var(--bg);
-  box-shadow: var(--shadow-inset);
+  overflow: hidden;
+  background: var(--aqua-soft);
+  border: 1px solid var(--line);
   color: var(--aqua);
-  opacity: 0.85;
 }
 .announce-cover svg { transition: transform 0.3s var(--ease-spring); }
 .announce-card:hover .announce-cover svg { transform: scale(1.12) rotate(-4deg); }
@@ -156,8 +155,7 @@
   font-weight: 700;
   letter-spacing: 0.34em;
   color: var(--aqua);
-  background: var(--bg);
-  box-shadow: var(--shadow-3);
+  background: var(--aqua-soft);
   border-radius: var(--radius-pill);
   padding: 5px 14px;
   margin-bottom: 20px;
@@ -187,22 +185,22 @@
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.14em;
-  transition: transform 0.2s var(--ease-spring), box-shadow 0.25s, color 0.25s;
+  transition: transform 0.2s var(--ease-spring), background-color 0.25s, color 0.25s, border-color 0.25s;
 }
 .btn-primary {
-  background: var(--bg);
-  color: var(--aqua);
-  box-shadow: var(--shadow-2);
+  background: var(--aqua);
+  color: #fff;
+  box-shadow: var(--shadow-rest);
 }
-.btn-primary:hover { color: var(--aqua-deep); transform: translateY(-2px); }
-.btn-primary:active { box-shadow: var(--shadow-inset); transform: scale(0.97); }
+.btn-primary:hover { background: var(--aqua-deep); color: #fff; transform: translateY(-2px); }
+.btn-primary:active { transform: scale(0.97); }
 .btn-ghost {
-  background: var(--bg);
+  background: transparent;
   color: var(--ink-soft);
-  box-shadow: var(--shadow-inset);
+  border: 1px solid var(--line-strong);
 }
-.btn-ghost:hover { color: var(--aqua); box-shadow: var(--shadow-2); transform: translateY(-2px); }
-.btn-ghost:active { box-shadow: var(--shadow-inset); transform: scale(0.97); }
+.btn-ghost:hover { color: var(--aqua); border-color: var(--aqua); background: var(--aqua-soft); transform: translateY(-2px); }
+.btn-ghost:active { transform: scale(0.97); }
 
 /* ── 滚动提示（仅鼠标图案） ── */
 .scroll-hint {
@@ -260,20 +258,24 @@
   text-align: center;
   padding: 20px 18px;
   border-radius: var(--radius-lg);
-  background: var(--bg);
-  box-shadow: var(--shadow-1);
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-rest);
   transform-style: preserve-3d;
-  transition: box-shadow 0.3s, transform 0.14s var(--ease-out);
+  transition: box-shadow 0.3s, border-color 0.3s, transform 0.14s var(--ease-out);
   will-change: transform;
 }
-.work-card:hover { box-shadow: var(--shadow-2), 0 26px 50px -20px var(--aqua-glow); }
-.work-card:active { box-shadow: var(--shadow-inset); }
+.work-card:hover {
+  border-color: var(--aqua-soft);
+  box-shadow: var(--shadow-pop), var(--shadow-lift);
+}
 .work-cover {
   width: 104px;
   height: 104px;
   border-radius: 18px;
-  background: var(--bg);
-  box-shadow: var(--shadow-inset);
+  overflow: hidden;
+  background: var(--aqua-soft);
+  border: 1px solid var(--line);
   display: grid;
   place-items: center;
   color: var(--aqua);
@@ -298,8 +300,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--aqua);
-  background: var(--bg);
-  box-shadow: var(--shadow-3);
+  background: var(--aqua-soft);
   border-radius: var(--radius-pill);
   padding: 3px 10px;
   margin-bottom: 6px;
@@ -334,22 +335,22 @@
   gap: 8px;
   padding: 12px 22px;
   border-radius: var(--radius-pill);
-  background: var(--bg);
+  background: var(--card);
+  border: 1px solid var(--line);
   color: var(--ink-soft);
-  box-shadow: var(--shadow-2);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  transition: color 0.22s, box-shadow 0.22s, transform 0.18s var(--ease-spring);
+  transition: color 0.22s, border-color 0.22s, transform 0.18s var(--ease-spring);
 }
 .platform-link svg { color: var(--aqua); transition: transform 0.25s var(--ease-spring); }
 .platform-link:hover {
   color: var(--aqua-deep);
+  border-color: var(--aqua);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-1);
 }
 .platform-link:hover svg { transform: translateY(-1px) scale(1.15); }
-.platform-link:active { box-shadow: var(--shadow-inset); transform: scale(0.96); }
+.platform-link:active { transform: scale(0.96); }
 
 /* ── 联系 ── */
 .contact-grid {
@@ -361,13 +362,16 @@
   display: block;
   padding: 28px 26px;
   border-radius: var(--radius-lg);
-  background: var(--bg);
-  box-shadow: var(--shadow-1);
-  transition: box-shadow 0.3s, transform 0.14s var(--ease-out);
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-rest);
+  transition: box-shadow 0.3s, border-color 0.3s, transform 0.14s var(--ease-out);
   will-change: transform;
 }
-.contact-card:hover { box-shadow: var(--shadow-2), 0 22px 44px -20px var(--aqua-glow); }
-.contact-card:active { box-shadow: var(--shadow-inset); }
+.contact-card:hover {
+  border-color: var(--aqua-soft);
+  box-shadow: var(--shadow-pop), var(--shadow-lift);
+}
 .contact-name {
   display: block;
   font-size: 16px;
@@ -400,5 +404,4 @@
   .nav a { padding: 6px 9px; font-size: 13px; }
   .hero { min-height: 92svh; padding-top: 110px; }
   .scroll-hint { display: none; }
-  .timeline { padding-left: 22px; }
 }
