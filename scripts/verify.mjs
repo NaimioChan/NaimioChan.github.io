@@ -53,7 +53,9 @@ try {
   const checks = {};
   checks.title = await evalJs('document.title');
   checks.theme = await evalJs('document.documentElement.dataset.theme');
-  checks.bubbles = await evalJs("document.querySelectorAll('.bubble').length");
+  checks.decorRemoved = await evalJs(
+    "({ bubbles: document.querySelectorAll('.bubbles, .bubble, .cursor-glow, .sound-toggle').length, rippleLayer: document.querySelectorAll('.ripple-layer').length })",
+  );
   checks.typeStart = await evalJs("document.querySelector('.type-text').textContent");
   await sleep(2200);
   checks.typeLater = await evalJs("document.querySelector('.type-text').textContent");

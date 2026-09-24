@@ -33,7 +33,7 @@ await sleep(4000);
 const checks = await evalJs(`(() => ({
   title: document.title,
   theme: document.documentElement.dataset.theme,
-  bubbles: document.querySelectorAll('.bubble').length,
+  decorRemoved: document.querySelectorAll('.bubbles, .bubble, .cursor-glow, .sound-toggle').length,
   heroName: document.querySelector('.hero-name-row')?.textContent,
   announce: document.querySelector('.announce-head')?.textContent,
   workCards: document.querySelectorAll('.work-card').length,
