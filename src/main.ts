@@ -32,7 +32,7 @@ renderNameArt();
 mountAvatarAscii({
   canvas,
   imageSrc: `${import.meta.env.BASE_URL}avatar.png`,
-  maxCols: 104,
+  maxCols: 140,
   frameMs: 80,
   noise: 0.05,
   gamma: 1,

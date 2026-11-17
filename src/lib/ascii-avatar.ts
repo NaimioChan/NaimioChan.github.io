@@ -93,7 +93,7 @@ function sampleImage(img: HTMLImageElement, cols: number, rows: number, sharpen:
 
 export function mountAvatarAscii(opts: AvatarAsciiOptions): AvatarAsciiHandle {
   const { canvas, imageSrc } = opts;
-  const maxCols = opts.maxCols ?? 104;
+  const maxCols = opts.maxCols ?? 140;
   const frameMs = opts.frameMs ?? 80;
   const noise = opts.noise ?? 0.05;
 
@@ -122,13 +122,13 @@ export function mountAvatarAscii(opts: AvatarAsciiOptions): AvatarAsciiHandle {
     const cssW = Math.max(180, host.clientWidth);
     const cssH = Math.max(180, host.clientHeight || cssW);
 
-    // 目标字符宽度约 5px：既能看清字形，又有足够格数承载细节
-    const cols = Math.min(maxCols, Math.max(32, Math.round(cssW / 5)));
+    // 目标字符宽度约 4px：格数越多细节越清楚，但过小会糊成噪点
+    const cols = Math.min(maxCols, Math.max(32, Math.round(cssW / 4)));
     cellW = cssW / cols;
     cellH = cellW / CELL_RATIO;
     const rows = Math.max(16, Math.round(cols * (cssH / cssW) * CELL_RATIO));
 
-    dpr = Math.min(2, window.devicePixelRatio || 1);
+    dpr = Math.min(3, window.devicePixelRatio || 1);
     canvas.width = Math.round(cols * cellW * dpr);
     canvas.height = Math.round(rows * cellH * dpr);
     canvas.style.width = `${cssW.toFixed(1)}px`;

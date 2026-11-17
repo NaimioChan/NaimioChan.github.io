@@ -10,7 +10,7 @@
 
 .hero-art {
   position: relative;
-  width: clamp(200px, 30vw, 300px);
+  width: clamp(220px, 32vw, 340px);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
