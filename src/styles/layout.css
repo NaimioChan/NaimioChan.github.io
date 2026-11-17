@@ -45,7 +45,8 @@
 .name-art {
   margin: 0;
   font-weight: 400;
-  font-size: clamp(7px, 1.55vw, 17px);
+  /* JS 会按容器宽度重算字号；这里是字体未就绪时的兜底 */
+  font-size: clamp(6px, 1.55vw, 17px);
   line-height: 1.05;
   letter-spacing: 0;
   color: var(--blue);
@@ -229,16 +230,14 @@
 @media (max-width: 640px) {
   .hero {
     grid-template-columns: minmax(0, 1fr);
-    justify-items: start;
+    /* 用 stretch 而不是 start：否则网格项按内容宽度撑开，字符画会顶出视口 */
+    justify-items: stretch;
     gap: 20px;
   }
 
   .hero-art {
     width: clamp(180px, 62vw, 260px);
-  }
-
-  .name-art {
-    font-size: clamp(6px, 2.35vw, 11px);
+    justify-self: start;
   }
 
   .link-list a {

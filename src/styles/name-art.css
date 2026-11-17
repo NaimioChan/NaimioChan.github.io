@@ -1,0 +1,21 @@
+/* ═══════════ name-art.css — 字符画专用字体 ═══════════ */
+/*
+ * 制表符 █ ═ ║ ╔ ╗ ╚ ╝ 在不少手机的回退字体里是全角（1em），
+ * 而空格来自等宽字体（约 0.6em），两者混排会让字符画的列错位、整块散开。
+ * 这里下发一个 4KB 的子集字体（JetBrains Mono 的这几个字形，统一 0.6em 等宽），
+ * 只给 .name-art 用，避免任何平台再走到全角回退。
+ */
+
+@font-face {
+  font-family: "Name Art Mono";
+  src: url("../assets/fonts/name-art.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+.name-art,
+.name-art-lines,
+.name-art-lines span {
+  font-family: "Name Art Mono", ui-monospace, monospace;
+}

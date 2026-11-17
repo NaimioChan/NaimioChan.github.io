@@ -7,11 +7,9 @@ const TARGET = process.env.TARGET_URL ?? 'http://localhost:4173/';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const targets = await (await fetch(`${CDP}/json`)).json();
-const page = targets.find((t) => t.type === 'page');
-if (!page) throw new Error('没有可用的 CDP 页面，先启动 Edge（bin\\start-edge-cdp.bat）');
-
-const ws = new WebSocket(page.webSocketDebuggerUrl);
+// 新开一个前台标签：后台标签里 rAF 与 CSS 动画不跑，会让 canvas/淡入断言假失败
+const opened = await fetch(`${CDP}/json/new?${encodeURIComponent(TARGET)}`, { method: 'PUT' }).then((r) => r.json());
+const ws = new WebSocket(opened.webSocketDebuggerUrl);
 await new Promise((res, rej) => {
   ws.onopen = res;
   ws.onerror = rej;
@@ -45,6 +43,9 @@ await send('Page.enable');
 await send('Runtime.enable');
 await send('Page.navigate', { url: TARGET });
 await sleep(2500);
+// 后台标签下 rAF 与 CSS 动画不跑，必须把页面切到前台
+await send('Page.bringToFront').catch(() => {});
+await sleep(600);
 
 const results = [];
 const check = (name, ok, detail = '') => {
@@ -73,6 +74,32 @@ check('NAIMIO 字符画 6 行', nameArt.lines === 6, `lines=${nameArt.lines}`);
 check('字符画含块元素字形', /█|╗|╔/.test(nameArt.text));
 check('字符画已淡入', nameArt.opacity.every((o) => Number(o) > 0.9), nameArt.opacity.join(','));
 check('字符画未被裁切', nameArt.clip === false);
+
+// ── 字符画字体：制表符与空格必须等宽，否则手机回退字体会让整块错位 ──
+const metrics = await evaluate(`(async () => {
+  await document.fonts.ready;
+  const host = document.querySelector('.name-art');
+  const spans = [...document.querySelectorAll('.name-art-lines span')];
+  const widths = spans.map(s => Math.round(s.getBoundingClientRect().width));
+  const probe = document.createElement('canvas').getContext('2d');
+  probe.font = '100px ' + getComputedStyle(host).fontFamily;
+  const per = ['\\u2588', '\\u2550', '\\u2551', '\\u2554', ' '].map(c => Math.round(probe.measureText(c).width * 10) / 10);
+  const docW = document.documentElement.clientWidth;
+  return {
+    widths,
+    equalLines: new Set(widths).size === 1,
+    per,
+    equalGlyphs: new Set(per).size === 1,
+    family: getComputedStyle(host).fontFamily,
+    fontSize: getComputedStyle(host).fontSize,
+    withinViewport: Math.max(...widths) <= docW,
+    fontLoaded: [...document.fonts].some(f => f.family.includes('Name Art Mono') && f.status === 'loaded'),
+  };
+})()`);
+check('字符画字体已加载', metrics.fontLoaded, metrics.family);
+check('制表符与空格等宽', metrics.equalGlyphs, metrics.per.join(','));
+check('各行等宽', metrics.equalLines, metrics.widths.join(','));
+check('字符画在视口内', metrics.withinViewport, `w=${Math.max(...metrics.widths)}`);
 
 // ── ASCII 头像 canvas 真的有内容 ──
 const canvas = await evaluate(`(() => {
