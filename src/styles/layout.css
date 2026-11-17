@@ -1,0 +1,254 @@
+/* ═══════════ layout.css — hero / 区块 / 链接 / 页脚 ═══════════ */
+
+/* ── HERO ── */
+.hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(20px, 4vw, 48px);
+}
+
+.hero-art {
+  position: relative;
+  width: clamp(200px, 30vw, 300px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.hero-art::before {
+  /* 头像背后的极淡网格，强调"屏幕"感 */
+  content: '';
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, rgba(122, 162, 247, 0.1), rgba(122, 162, 247, 0) 70%);
+  pointer-events: none;
+}
+
+.ascii-canvas {
+  position: relative;
+  display: block;
+  image-rendering: auto;
+  filter: drop-shadow(0 0 6px rgba(122, 162, 247, 0.28));
+}
+
+.hero-side {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.6vw, 18px);
+}
+
+/* NAIMIO 大字：figlet 字符画，逐行渲染 */
+.name-art {
+  margin: 0;
+  font-weight: 400;
+  font-size: clamp(7px, 1.55vw, 17px);
+  line-height: 1.05;
+  letter-spacing: 0;
+  color: var(--blue);
+  text-shadow:
+    0 0 12px rgba(122, 162, 247, 0.45),
+    0 0 28px rgba(122, 162, 247, 0.18);
+  white-space: pre;
+  overflow: hidden;
+}
+
+.name-art-lines {
+  display: block;
+  white-space: pre;
+}
+
+/* 逐行错位淡入，像终端刷屏 */
+.name-art-lines span {
+  display: block;
+  white-space: pre;
+  opacity: 0;
+  transform: translateX(-8px);
+  animation: line-in 320ms var(--ease) forwards;
+}
+
+@keyframes line-in {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ── 终端提示符 ── */
+.prompt {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: clamp(12px, 1.4vw, 15px);
+  color: var(--muted);
+  user-select: none;
+}
+
+.prompt-user {
+  color: var(--green);
+}
+.prompt-at,
+.prompt-colon {
+  color: var(--muted);
+}
+.prompt-host {
+  color: var(--purple);
+}
+.prompt-path {
+  color: var(--blue);
+}
+.prompt-sign {
+  margin-left: 6px;
+  color: var(--cyan);
+}
+
+.caret {
+  display: inline-block;
+  width: 8px;
+  height: 1.05em;
+  margin-left: 4px;
+  background: var(--cyan);
+  animation: caret-blink 1.05s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── 区块 ── */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.block-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-transform: lowercase;
+}
+
+.block-mark {
+  color: var(--purple);
+}
+
+.block-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--line), rgba(41, 46, 66, 0));
+}
+
+/* ── 链接行：等宽两列 ── */
+.link-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.link-list a {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(88px, 120px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: baseline;
+  padding: 6px 10px 6px 14px;
+  color: var(--fg-dim);
+  transition: color 160ms var(--ease);
+}
+
+.link-list a::before {
+  content: '›';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  color: var(--cyan);
+  opacity: 0;
+  transition: opacity 160ms var(--ease), transform 160ms var(--ease);
+  transform: translateX(-3px);
+}
+
+.link-list li {
+  position: relative;
+}
+
+.link-list a:hover,
+.link-list a:focus-visible {
+  color: var(--fg);
+}
+
+.link-list a:hover::before,
+.link-list a:focus-visible::before {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.link-key {
+  color: var(--blue);
+  font-size: 13px;
+}
+
+.link-val {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  color: var(--comment);
+}
+
+.link-list a:hover .link-val,
+.link-list a:focus-visible .link-val {
+  color: var(--cyan);
+}
+
+/* ── 页脚 ── */
+.footer {
+  padding: 24px var(--pad) 28px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--line-soft);
+}
+
+/* ── 窄屏：头像在上，名称在下 ── */
+@media (max-width: 640px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 20px;
+  }
+
+  .hero-art {
+    width: clamp(180px, 62vw, 260px);
+  }
+
+  .name-art {
+    font-size: clamp(6px, 2.35vw, 11px);
+  }
+
+  .link-list a {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .link-key {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}

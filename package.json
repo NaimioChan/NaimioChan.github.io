@@ -9,7 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:page": "node scripts/verify-page.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

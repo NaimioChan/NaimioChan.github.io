@@ -1,122 +1,116 @@
-/* ═══════════ base.css — 重置 / 背景层 / 全局装饰（扁平圆角） ═══════════ */
+/* ═══════════ base.css — 重置 / CRT 覆盖层 / 页面骨架 ═══════════ */
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-html { scroll-behavior: smooth; }
+html {
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
-  font-family: var(--font-body);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
-  color: var(--ink);
-  line-height: 1.7;
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.6;
+  font-variant-ligatures: none;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  transition: background-color 0.5s var(--ease-out), color 0.5s var(--ease-out);
 }
 
-::selection { background: var(--aqua-soft); color: var(--aqua-deep); }
+a {
+  color: inherit;
+  text-decoration: none;
+}
 
-a { color: inherit; text-decoration: none; }
-
-button { font-family: inherit; cursor: pointer; }
+::selection {
+  background: var(--accent-soft);
+  color: var(--cyan);
+}
 
 :focus-visible {
-  outline: 2px solid var(--aqua);
+  outline: 1px solid var(--cyan);
   outline-offset: 3px;
-  border-radius: 6px;
 }
 
-/* ── 背景水光：缓慢漂移的三团光 ── */
-.bg-aura {
-  position: fixed;
-  inset: -20%;
-  z-index: -2;
-  pointer-events: none;
-  background:
-    radial-gradient(42% 38% at 22% 18%, var(--aura-a), transparent 70%),
-    radial-gradient(46% 42% at 82% 30%, var(--aura-b), transparent 72%),
-    radial-gradient(38% 36% at 55% 88%, var(--aura-c), transparent 70%);
-  filter: blur(6px);
-  animation: aura-drift 26s ease-in-out infinite alternate;
+/* 仅供屏幕阅读器 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* ── 滚动进度条 ── */
-.scroll-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 3px;
-  width: 0;
-  z-index: 90;
-  background: var(--progress);
-  border-radius: 0 3px 3px 0;
-  box-shadow: 0 0 10px var(--aqua-glow);
-}
-
-/* ── 点击涟漪层 ── */
-.ripple-layer {
+/* ── CRT 覆盖层：扫描线 + 暗角 + 极淡噪点 ── */
+.crt {
   position: fixed;
   inset: 0;
-  z-index: 95;
+  z-index: 50;
   pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0.22) 3px,
+      rgba(0, 0, 0, 0) 4px
+    ),
+    radial-gradient(120% 90% at 50% 45%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+  mix-blend-mode: multiply;
+  opacity: 0.75;
 }
-.ripple {
+
+/* 缓慢下移的一道亮带，让画面有一点呼吸 */
+.crt::after {
+  content: '';
   position: absolute;
-  border-radius: 50%;
-  border: 2px solid var(--aqua);
-  transform: translate(-50%, -50%) scale(0);
-  opacity: 0.55;
-  animation: ripple-expand 0.85s var(--ease-out) forwards;
+  inset: -30% 0 auto;
+  height: 30%;
+  background: linear-gradient(
+    to bottom,
+    rgba(122, 162, 247, 0) 0%,
+    rgba(122, 162, 247, 0.045) 50%,
+    rgba(122, 162, 247, 0) 100%
+  );
+  animation: crt-sweep 9s linear infinite;
 }
 
-/* ── 布局容器 ── */
-main {
-  position: relative;
-  z-index: 1;
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 0 28px;
+@keyframes crt-sweep {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(430%);
+  }
 }
-.section {
-  padding: 84px 0 20px;
-  scroll-margin-top: 90px;
-}
-.section-title {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--aqua);
-  margin-bottom: 30px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.section-title::after {
-  content: "";
+
+.wrap {
   flex: 1;
-  height: 1px;
-  background: var(--line);
-}
-.title-num {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.28em;
-  color: var(--aqua);
-  background: var(--aqua-soft);
-  border: 1px solid var(--aqua-soft);
-  border-radius: var(--radius-pill);
-  padding: 7px 20px;
-  margin-left: 2px;
-}
-.section-sub {
-  font-size: 13.5px;
-  color: var(--ink-soft);
-  letter-spacing: 0.12em;
-  margin: -20px 0 26px;
-  padding-left: 2px;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(32px, 7vh, 88px) var(--pad) clamp(24px, 5vh, 56px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(40px, 7vh, 76px);
 }
 
-@media (max-width: 640px) {
-  .section { padding: 64px 0 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .crt::after {
+    animation: none;
+    opacity: 0.35;
+  }
 }

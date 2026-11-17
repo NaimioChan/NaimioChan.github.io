@@ -1,14 +1,9 @@
 import './styles/tokens.css';
 import './styles/base.css';
-import './styles/components.css';
-import './styles/motion.css';
+import './styles/layout.css';
 
-import { initProgress } from './lib/progress';
-import { initReveal } from './lib/reveal';
-import { initRipple } from './lib/ripple';
-import { initTheme } from './lib/theme';
-import { initTilt } from './lib/tilt';
-import { Typewriter } from './lib/typewriter';
+import { mountAvatarAscii } from './lib/ascii-avatar';
+import { NAME_ART } from './lib/name-art';
 
 function $(sel: string): HTMLElement {
   const el = document.querySelector<HTMLElement>(sel);
@@ -16,28 +11,29 @@ function $(sel: string): HTMLElement {
   return el;
 }
 
-initTheme($('.theme-toggle'));
-initReveal();
-initTilt();
-initProgress($('.scroll-progress'));
-initRipple($('.ripple-layer'));
+/** NAIMIO 大字：逐行插入 span，靠 CSS animation-delay 做错位淡入 */
+function renderNameArt(): void {
+  const host = $('.name-art-lines');
+  const frag = document.createDocumentFragment();
+  NAME_ART.forEach((line, i) => {
+    const span = document.createElement('span');
+    span.textContent = line;
+    span.style.animationDelay = `${120 + i * 70}ms`;
+    frag.append(span);
+  });
+  host.append(frag);
+}
 
-// ── 作品行：桌面鼠标滚轮转为横向滚动 ──
-const workGrid = $('.work-grid');
-workGrid.addEventListener(
-  'wheel',
-  (e) => {
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-      e.preventDefault();
-      workGrid.scrollLeft += e.deltaY;
-    }
-  },
-  { passive: false },
-);
+const canvas = document.querySelector<HTMLCanvasElement>('.ascii-canvas');
+if (!canvas) throw new Error('missing element: .ascii-canvas');
 
-// ── 打字机副标题（单句，打完保持） ──
-new Typewriter(
-  $('.type-text'),
-  ['Discover the sounds.'],
-  { typeMs: 110, deleteMs: 45, holdMs: 400, loop: false },
-).start();
+renderNameArt();
+
+mountAvatarAscii({
+  canvas,
+  imageSrc: `${import.meta.env.BASE_URL}avatar.png`,
+  maxCols: 104,
+  frameMs: 80,
+  noise: 0.05,
+  gamma: 1,
+});

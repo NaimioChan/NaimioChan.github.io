@@ -1,61 +1,35 @@
-/* ═══════════ tokens.css — 水色明暗双主题（扁平圆角） ═══════════ */
+/* ═══════════ tokens.css — Tokyo Night 单主题（终端 / ASCII） ═══════════ */
 
 :root {
-  /* 英文 Times New Roman 优先，中文回退到思源宋体（系统已装 Source Han Serif SC 全字重） */
-  --font-body: "Times New Roman", Times, "Source Han Serif SC", "Noto Serif SC",
-    "思源宋体", "Songti SC", "SimSun", serif;
-  --font-display: "Times New Roman", Times, Georgia, serif;
-  --radius-lg: 26px;
-  --radius-md: 18px;
-  --radius-sm: 12px;
-  --radius-pill: 999px;
-  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
-}
-
-/* ── 浅色：晨光水面 ── */
-:root[data-theme="light"] {
-  --bg: #e9f1f3;
-  --card: #ffffff;
-  --ink: #31464d;
-  --ink-soft: #6d838a;
-  --aqua: #3389d1;
-  --aqua-deep: #1e6fb8;
-  --aqua-glow: rgba(51, 137, 209, 0.35);
-  --aqua-soft: rgba(51, 137, 209, 0.12);
-  --coral: #ee9078;
-  --line: rgba(49, 70, 77, 0.1);
-  --line-strong: rgba(49, 70, 77, 0.18);
-  --aura-a: rgba(120, 180, 230, 0.35);
-  --aura-b: rgba(255, 255, 255, 0.55);
-  --aura-c: rgba(238, 144, 120, 0.14);
-  --progress: linear-gradient(90deg, #3389d1, #6fb8ea);
-  /* 扁平阴影：单向柔和环境光，无双向浮雕 */
-  --shadow-rest: 0 6px 18px -10px rgba(49, 70, 77, 0.2);
-  --shadow-pop: 0 16px 36px -14px rgba(49, 70, 77, 0.24);
-  --shadow-lift: 0 24px 48px -18px var(--aqua-glow);
-  color-scheme: light;
-}
-
-/* ── 深色：深海夜光 ── */
-:root[data-theme="dark"] {
-  --bg: #0e1c21;
-  --card: #16292f;
-  --ink: #d5e8eb;
-  --ink-soft: #8ba7ae;
-  --aqua: #5cb0ea;
-  --aqua-deep: #2f8fcf;
-  --aqua-glow: rgba(92, 176, 234, 0.4);
-  --aqua-soft: rgba(92, 176, 234, 0.13);
-  --coral: #f19a83;
-  --line: rgba(213, 232, 235, 0.1);
-  --line-strong: rgba(213, 232, 235, 0.2);
-  --aura-a: rgba(55, 130, 190, 0.22);
-  --aura-b: rgba(30, 80, 95, 0.2);
-  --aura-c: rgba(241, 154, 131, 0.07);
-  --progress: linear-gradient(90deg, #5cb0ea, #2f8fcf);
-  --shadow-rest: 0 8px 20px -12px rgba(0, 0, 0, 0.55);
-  --shadow-pop: 0 18px 40px -16px rgba(0, 0, 0, 0.6);
-  --shadow-lift: 0 24px 52px -18px var(--aqua-glow);
   color-scheme: dark;
+
+  /* Tokyo Night 基础色板 */
+  --bg: #16161e;
+  --bg-soft: #1a1b26;
+  --panel: #1f2335;
+  --line: #292e42;
+  --line-soft: #23283c;
+
+  --fg: #c0caf5;
+  --fg-dim: #a9b1d6;
+  --muted: #565f89;
+  --comment: #6b7394;
+
+  --blue: #7aa2f7;
+  --cyan: #7dcfff;
+  --purple: #bb9af7;
+  --green: #9ece6a;
+  --orange: #ff9e64;
+  --red: #f7768e;
+
+  /* 语义 */
+  --accent: var(--cyan);
+  --accent-soft: rgba(125, 207, 255, 0.14);
+  --glow: rgba(122, 162, 247, 0.35);
+
+  --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Mono", "SFMono-Regular",
+    Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --pad: clamp(20px, 4vw, 56px);
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
