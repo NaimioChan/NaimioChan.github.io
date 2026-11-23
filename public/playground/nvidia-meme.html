@@ -60,20 +60,10 @@
   .tips{font-size:12px; color:var(--muted); line-height:1.8;}
   .tips b{color:var(--accent); font-weight:600;}
 
-  /* ── 预览：仿新闻卡 ── */
-  .news{background:#fff; width:560px; max-width:88vw; color:var(--news-ink);
-    padding:34px 38px 30px;
-    font-family:"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei","Noto Sans SC","Source Han Sans SC",sans-serif;}
-  .news .src{font-size:13px; color:var(--news-dim); letter-spacing:1px; margin-bottom:14px;}
-  .news .headline{font-size:30px; font-weight:700; line-height:1.4; letter-spacing:.5px; margin-bottom:18px;}
-  .news .quote{font-size:16px; line-height:1.8; color:#222; margin-bottom:10px; text-indent:2em;}
-  .news .attribution{font-size:14px; color:var(--news-dim); margin-bottom:22px; text-indent:2em;}
-  .news .imgs{display:flex; gap:10px;}
-  .news .imgs figure{flex:1; margin:0;}
-  .news .imgs img{display:block; width:100%; object-fit:contain; background:#eee;}
-  .news .date{font-size:12px; color:var(--news-dim); margin-top:10px;}
+  /* ── 预览：直接渲染导出用的同一张 canvas，所见即所得 ── */
+  #preview{background:#fff; width:560px; max-width:88vw; height:auto; display:block;
+    border-radius:4px; box-shadow:0 8px 30px -10px rgba(0,0,0,.5);}
 
-  canvas{display:none;}
   .toast{position:fixed; left:50%; bottom:32px; transform:translateX(-50%) translateY(20px);
     background:var(--accent); color:#16161e; font-size:13px;
     padding:10px 20px; border-radius:8px; opacity:0; pointer-events:none; transition:.25s; z-index:9;}
@@ -85,7 +75,7 @@
 <body>
 <a class="back" href="../">← cd ../</a>
 <h1>英伟达董事会调查发现</h1>
-<p class="sub">梗图生成器 · 一本正经地胡说八道</p>
+<p class="sub">梗图生成器 · 预览即成品 · 一本正经地胡说八道</p>
 
 <div class="layout">
   <div class="panel editor">
@@ -140,26 +130,16 @@
     </div>
     <p class="tips">
       句式公式：<b>英伟达董事会最新内部调查发现，前 CEO 黄仁勋在任期间，曾多次【一件微不足道但很欠扁的小事】。</b><br>
-      日期建议填一个未来年份，虚构感拉满。「模糊度」和「转发次数」拉高后，成品会呈现被转发了无数手的赛博文物质感。图片仅在本地处理，不会上传。
+      日期建议填一个未来年份，虚构感拉满。「模糊度」和「转发次数」只影响下载的成品，预览始终是干净原图。图片仅在本地处理，不会上传。
     </p>
   </div>
 
   <div class="panel preview-panel">
-    <div class="news" id="news">
-      <p class="src" id="v-src">arknights</p>
-      <h2 class="headline" id="v-headline"></h2>
-      <p class="quote" id="v-quote"></p>
-      <p class="attribution" id="v-attr"></p>
-      <div class="imgs">
-        <figure><img id="v-imgL" alt="配图一"></figure>
-        <figure><img id="v-imgR" alt="配图二"></figure>
-      </div>
-      <p class="date" id="v-date">November 17, 2028</p>
-    </div>
+    <canvas id="preview" width="1120" height="1200"></canvas>
   </div>
 </div>
 
-<canvas id="export"></canvas>
+<canvas id="export" style="display:none;"></canvas>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -179,13 +159,15 @@
   var PH_L = placeholder('配图一（点击替换）');
   var PH_R = placeholder('配图二（点击上传）');
 
+  // 图片源：预览与导出共用同一对 Image 对象
   var imgL = new Image(), imgR = new Image();
-  imgR.src = PH_R;
-  $('v-imgR').src = PH_R;
-  // 左图默认皮衣照（与页面同目录的 jensen.png），加载成功后同步预览；失败回退占位图
-  imgL.onload = function(){ $('v-imgL').src = imgL.src; };
-  imgL.onerror = function(){ imgL.src = PH_L; $('v-imgL').src = PH_L; };
+  var jensenReady = false, rightReady = false;
+  function refresh(){ renderPreview(); }
+  imgL.onload = function(){ jensenReady = true; refresh(); };
+  imgL.onerror = function(){ imgL.src = PH_L; };
   imgL.src = 'jensen.png';
+  imgR.onload = function(){ rightReady = true; refresh(); };
+  imgR.src = PH_R;
 
   var presets = [
     {h:'英伟达董事会调查发现，CEO黄仁勋曾用公司微波炉加热开了盖的鲑鱼，导致茶水间一个星期才散掉臭味。',
@@ -220,27 +202,7 @@
      a:'一位明显饿着肚子的排队员工说。'}
   ];
 
-  function render(){
-    $('v-src').textContent = $('src').value.trim() || 'arknights';
-    $('v-headline').textContent = $('headline').value.trim();
-    $('v-quote').textContent = '“' + $('quote').value.trim() + '”';
-    $('v-attr').textContent = $('attr').value.trim();
-    $('v-date').textContent = $('date').value.trim();
-  }
-
-  function toast(msg){
-    var t = $('toast'); t.textContent = msg; t.classList.add('show');
-    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('show'); }, 1800);
-  }
-
-  function loadImage(file, img, ph){
-    if(!file){ img.src = ph; return; }
-    var rd = new FileReader();
-    rd.onload = function(){ img.src = rd.result; };
-    rd.readAsDataURL(file);
-  }
-
-  // ── 文字排版 ──
+  // ── 文字排版（预览与导出共用）──
   function wrapText(g, text, x, y, maxW, lineH, indent){
     var first = true, line = '', w = 0;
     for(var i = 0; i < text.length; i++){
@@ -255,19 +217,19 @@
     return y + lineH;
   }
 
-  // ── 组装新闻卡 canvas（scale = 输出分辨率 / 1120）──
+  // ── 组装新闻卡 canvas（基础尺寸 1120，scale = 输出/1120）──
   function buildCard(scale){
     var W = Math.round(1120 * scale), PAD = Math.round(76 * scale), GAP = Math.round(20 * scale);
-    var src = $('v-src').textContent;
-    var headline = $('v-headline').textContent;
+    var src = $('src').value.trim() || 'arknights';
+    var headline = $('headline').value.trim();
     var quote = '“' + $('quote').value.trim() + '”';
     var attr = $('attr').value.trim();
-    var date = $('v-date').textContent;
+    var date = $('date').value.trim();
     var innerW = W - PAD*2, colW = (innerW - GAP)/2;
     var s = scale;
 
     var c = document.createElement('canvas');
-    c.width = W; c.height = Math.round(2000 * s);
+    c.width = W; c.height = Math.round(2200 * s);
     var g = c.getContext('2d');
     g.fillStyle = '#ffffff'; g.fillRect(0,0,W,c.height);
     var y = PAD;
@@ -287,31 +249,39 @@
     g.fillText(attr, PAD + Math.round(56*s), y + Math.round(8*s));
     y += Math.round(74*s);
 
-    // 两图按各自比例取高，取较大者作为行高；图片顶对齐、无裁切
-    var hL = imgRatio(imgL) * colW, hR = imgRatio(imgR) * colW;
-    var imgH = Math.max(hL, hR, 1);
-    function imgRatio(img){
+    // 两图按各自比例取高，行高取较大者；contain 完整显示，无裁切
+    function ratioOf(img){
       var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
       return (iw && ih) ? ih/iw : 0.75;
     }
-    function drawContain(img, x, h){
+    var imgH = Math.max(ratioOf(imgL), ratioOf(imgR)) * colW;
+    function drawContain(img, x){
       var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
-      if(!iw || !ih){ g.fillStyle = '#ececec'; g.fillRect(x, y, colW, h); return; }
-      var r = Math.min(colW/iw, h/ih), dw = iw*r, dh = ih*r;
-      g.drawImage(img, x + (colW-dw)/2, y + (h-dh)/2, dw, dh);
+      if(!iw || !ih){ g.fillStyle = '#ececec'; g.fillRect(x, y, colW, imgH); return; }
+      var r = Math.min(colW/iw, imgH/ih), dw = iw*r, dh = ih*r;
+      g.drawImage(img, x + (colW-dw)/2, y + (imgH-dh)/2, dw, dh);
     }
-    drawContain(imgL, PAD, imgH);
-    drawContain(imgR, PAD + colW + GAP, imgH);
+    drawContain(imgL, PAD);
+    drawContain(imgR, PAD + colW + GAP);
     y += imgH + Math.round(44*s);
 
     g.fillStyle = '#555555'; g.font = Math.round(24*s) + 'px ' + SANS;
     g.fillText(date, PAD, y);
 
-    // 裁掉底部空白
     var H = Math.ceil(y + PAD*0.4);
     var out = document.createElement('canvas'); out.width = W; out.height = H;
     out.getContext('2d').drawImage(c, 0, 0);
     return out;
+  }
+
+  // ── 预览：把同一张卡缩放画到 #preview 上（与导出像素级一致）──
+  function renderPreview(){
+    var card = buildCard(1);
+    var pv = $('preview');
+    pv.width = card.width; pv.height = card.height;
+    var g = pv.getContext('2d');
+    g.clearRect(0,0,pv.width,pv.height);
+    g.drawImage(card, 0, 0);
   }
 
   // ── 赛博文物化：模糊 + 反复 JPEG 压损（缩小→放回循环）──
@@ -344,7 +314,6 @@
     var card = buildCard(scale);
     var final = degrade(card);
     var fwd = parseInt($('fwd').value, 10);
-    // 转发次数越多，编码质量越低，压损痕迹越重
     var quality = fwd >= 5 ? 0.4 : fwd >= 3 ? 0.5 : fwd >= 1 ? 0.6 : 0.92;
     var type = fwd > 0 ? 'image/jpeg' : 'image/png';
     final.toBlob(function(blob){
@@ -357,20 +326,30 @@
     }, type, quality);
   }
 
+  function toast(msg){
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+  }
+
+  function loadImageFile(file, img, ph){
+    if(!file){ img.src = ph; return; }
+    var rd = new FileReader();
+    rd.onload = function(){ img.src = rd.result; };  // onload 后统一 renderPreview
+    rd.readAsDataURL(file);
+  }
+
   ['src','headline','quote','attr','date'].forEach(function(id){
-    $(id).addEventListener('input', render);
+    $(id).addEventListener('input', renderPreview);
   });
-  $('imgL').addEventListener('change', function(e){ loadImage(e.target.files[0], imgL, PH_L); });
-  $('imgR').addEventListener('change', function(e){ loadImage(e.target.files[0], imgR, PH_R); });
-  $('blur').addEventListener('input', function(){ $('blurVal').textContent = this.value; });
-  $('fwd').addEventListener('input', function(){ $('fwdVal').textContent = this.value; });
+  $('imgL').addEventListener('change', function(e){ loadImageFile(e.target.files[0], imgL, PH_L); });
+  $('imgR').addEventListener('change', function(e){ loadImageFile(e.target.files[0], imgR, PH_R); });
   $('random').addEventListener('click', function(){
     var p = presets[Math.floor(Math.random()*presets.length)];
     $('headline').value = p.h; $('quote').value = p.q; $('attr').value = p.a;
-    render();
+    renderPreview();
   });
   $('download').addEventListener('click', download);
-  render();
+  renderPreview();
 })();
 </script>
 </body>
