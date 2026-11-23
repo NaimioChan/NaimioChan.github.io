@@ -70,7 +70,7 @@
   .news .attribution{font-size:14px; color:var(--news-dim); margin-bottom:22px; text-indent:2em;}
   .news .imgs{display:flex; gap:10px;}
   .news .imgs figure{flex:1; margin:0;}
-  .news .imgs img{display:block; width:100%; aspect-ratio:4/3; object-fit:cover; background:#eee;}
+  .news .imgs img{display:block; width:100%; object-fit:contain; background:#eee;}
   .news .date{font-size:12px; color:var(--news-dim); margin-top:10px;}
 
   canvas{display:none;}
@@ -287,15 +287,21 @@
     g.fillText(attr, PAD + Math.round(56*s), y + Math.round(8*s));
     y += Math.round(74*s);
 
-    var imgH = colW * 0.75;
-    function drawCover(img, x){
+    // 两图按各自比例取高，取较大者作为行高；图片顶对齐、无裁切
+    var hL = imgRatio(imgL) * colW, hR = imgRatio(imgR) * colW;
+    var imgH = Math.max(hL, hR, 1);
+    function imgRatio(img){
       var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
-      if(!iw || !ih){ g.fillStyle = '#ececec'; g.fillRect(x, y, colW, imgH); return; }
-      var r = Math.max(colW/iw, imgH/ih), dw = iw*r, dh = ih*r;
-      g.drawImage(img, x + (colW-dw)/2, y + (imgH-dh)/2, dw, dh);
+      return (iw && ih) ? ih/iw : 0.75;
     }
-    drawCover(imgL, PAD);
-    drawCover(imgR, PAD + colW + GAP);
+    function drawContain(img, x, h){
+      var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+      if(!iw || !ih){ g.fillStyle = '#ececec'; g.fillRect(x, y, colW, h); return; }
+      var r = Math.min(colW/iw, h/ih), dw = iw*r, dh = ih*r;
+      g.drawImage(img, x + (colW-dw)/2, y + (h-dh)/2, dw, dh);
+    }
+    drawContain(imgL, PAD, imgH);
+    drawContain(imgR, PAD + colW + GAP, imgH);
     y += imgH + Math.round(44*s);
 
     g.fillStyle = '#555555'; g.font = Math.round(24*s) + 'px ' + SANS;
