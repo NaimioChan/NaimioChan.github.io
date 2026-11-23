@@ -6,83 +6,84 @@
 <title>英伟达董事会调查发现 · 梗图生成器</title>
 <style>
   :root{
-    --bg:#e6f0fa; --card:#ffffff;
-    --accent:#3389d1; --accent-soft:#7fb8e8; --accent-shadow:rgba(51,137,209,.32);
-    --line:rgba(51,80,107,.12); --line-strong:rgba(51,80,107,.22); --shadow-flat:rgba(51,80,107,.18);
-    --text:#33506b; --text-dim:#7d95ad;
+    --bg:#16161e; --panel:#1f2335; --card:#1a1b26;
+    --line:#292e42;
+    --fg:#c0caf5; --fg-dim:#a9b1d6; --muted:#565f89;
+    --accent:#7dcfff;
     --news-ink:#111111; --news-dim:#555555;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{
-    font-family:"Times New Roman",Times,"Source Han Serif SC","Noto Serif SC","思源宋体","Songti SC","SimSun",serif;
-    background:var(--bg); color:var(--text);
+    font-family:ui-monospace,"JetBrains Mono","Cascadia Mono","SFMono-Regular",Consolas,"Courier New",monospace;
+    background:var(--bg); color:var(--fg);
     min-height:100vh; display:flex; flex-direction:column; align-items:center;
     gap:16px; padding:28px 16px 48px;
   }
   .back{
-    align-self:flex-start; font-size:14px; color:var(--text-dim); text-decoration:none;
-    padding:8px 16px; border-radius:999px; background:var(--card);
-    box-shadow:0 4px 14px -6px var(--shadow-flat); transition:color .2s;
+    align-self:flex-start; font-size:14px; color:var(--muted); text-decoration:none;
+    padding:8px 16px; border-radius:8px; background:var(--panel);
+    border:1px solid var(--line); transition:color .2s;
   }
   .back:hover{color:var(--accent);}
-  h1{font-size:24px; font-weight:600; letter-spacing:2px; color:var(--text); text-align:center;}
-  .sub{font-size:13px; color:var(--text-dim); letter-spacing:1px; margin-top:-10px; text-align:center;}
+  h1{font-size:22px; font-weight:600; letter-spacing:1px; color:var(--fg); text-align:center;}
+  h1::before{content:"$ "; color:var(--accent);}
+  .sub{font-size:13px; color:var(--muted); margin-top:-8px; text-align:center;}
 
   .layout{display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap; justify-content:center; max-width:1160px;}
-  .panel{background:var(--card); border-radius:22px; padding:20px 22px;
-    box-shadow:0 10px 26px -12px var(--shadow-flat); border:1px solid var(--line);}
-  .editor{width:400px; display:flex; flex-direction:column; gap:14px;}
+  .panel{background:var(--panel); border-radius:14px; padding:20px 22px; border:1px solid var(--line);}
+  .editor{width:420px; display:flex; flex-direction:column; gap:13px;}
   .preview-panel{padding:14px;}
 
   .field{display:flex; flex-direction:column; gap:5px;}
-  .field label{font-size:12px; letter-spacing:1px; color:var(--text-dim);}
-  .field input, .field textarea{
-    font-family:inherit; font-size:14px; color:var(--text);
-    background:var(--bg); border:1px solid var(--line-strong); border-radius:10px;
+  .field label{font-size:12px; color:var(--muted);}
+  .field input, .field textarea, .field select{
+    font-family:inherit; font-size:14px; color:var(--fg);
+    background:var(--card); border:1px solid var(--line); border-radius:8px;
     padding:9px 12px; outline:none; resize:vertical; transition:border-color .15s;
   }
   .field input:focus, .field textarea:focus{border-color:var(--accent);}
   textarea{min-height:58px; line-height:1.5;}
+  input[type="file"]{font-size:12px;}
+  input[type="range"]{accent-color:var(--accent); padding:4px 0;}
 
   .btnrow{display:flex; gap:8px; flex-wrap:wrap;}
   button{
-    font-family:inherit; font-size:13px; cursor:pointer; border:none;
-    padding:9px 14px; border-radius:12px; color:var(--text-dim);
-    background:var(--bg); border:1px solid var(--line-strong);
+    font-family:inherit; font-size:13px; cursor:pointer;
+    padding:9px 14px; border-radius:8px; color:var(--fg-dim);
+    background:var(--card); border:1px solid var(--line);
     transition:color .12s, border-color .12s;
   }
   button:hover{color:var(--accent); border-color:var(--accent);}
-  button.primary{background:var(--accent); color:#fff; border-color:var(--accent);
-    box-shadow:0 6px 16px -6px var(--accent-shadow);}
-  button.primary:hover{color:#fff; filter:brightness(1.06);}
+  button.primary{background:var(--accent); color:#16161e; border-color:var(--accent); font-weight:600;}
+  button.primary:hover{filter:brightness(1.1); color:#16161e;}
 
-  .tips{font-size:12px; color:var(--text-dim); line-height:1.7;}
+  .tips{font-size:12px; color:var(--muted); line-height:1.8;}
   .tips b{color:var(--accent); font-weight:600;}
 
   /* ── 预览：仿新闻卡 ── */
   .news{background:#fff; width:560px; max-width:88vw; color:var(--news-ink);
-    padding:34px 38px 30px; font-family:"Times New Roman",Times,"Source Han Serif SC","Noto Serif SC","Songti SC","SimSun",serif;}
+    padding:34px 38px 30px;
+    font-family:"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei","Noto Sans SC","Source Han Sans SC",sans-serif;}
   .news .src{font-size:13px; color:var(--news-dim); letter-spacing:1px; margin-bottom:14px;}
-  .news .headline{font-size:30px; font-weight:700; line-height:1.4; letter-spacing:1px; margin-bottom:18px;}
-  .news .quote{font-size:16px; line-height:1.8; color:#222; margin-bottom:10px;
-    text-indent:2em;}
+  .news .headline{font-size:30px; font-weight:700; line-height:1.4; letter-spacing:.5px; margin-bottom:18px;}
+  .news .quote{font-size:16px; line-height:1.8; color:#222; margin-bottom:10px; text-indent:2em;}
   .news .attribution{font-size:14px; color:var(--news-dim); margin-bottom:22px; text-indent:2em;}
   .news .imgs{display:flex; gap:10px;}
   .news .imgs figure{flex:1; margin:0;}
   .news .imgs img{display:block; width:100%; aspect-ratio:4/3; object-fit:cover; background:#eee;}
   .news .date{font-size:12px; color:var(--news-dim); margin-top:10px;}
 
-  canvas#export{display:none;}
+  canvas{display:none;}
   .toast{position:fixed; left:50%; bottom:32px; transform:translateX(-50%) translateY(20px);
-    background:var(--text); color:#fff; font-size:13px; letter-spacing:1px;
-    padding:10px 20px; border-radius:999px; opacity:0; pointer-events:none; transition:.25s;}
+    background:var(--accent); color:#16161e; font-size:13px;
+    padding:10px 20px; border-radius:8px; opacity:0; pointer-events:none; transition:.25s; z-index:9;}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
   @media (max-width:1020px){ .editor{width:min(560px,92vw);} }
 </style>
 </head>
 <body>
-<a class="back" href="../">← 返回</a>
+<a class="back" href="../">← cd ../</a>
 <h1>英伟达董事会调查发现</h1>
 <p class="sub">梗图生成器 · 一本正经地胡说八道</p>
 
@@ -109,20 +110,37 @@
       <input id="date" value="November 17, 2028">
     </div>
     <div class="field">
-      <label>左图（黄仁勋皮衣照，可选）</label>
+      <label>左图（默认皮衣照，可替换）</label>
       <input type="file" id="imgL" accept="image/*">
     </div>
     <div class="field">
       <label>右图（游戏截图/梗图，可选）</label>
       <input type="file" id="imgR" accept="image/*">
     </div>
+    <div class="field">
+      <label>模糊度：<span id="blurVal">0</span>（赛博文物化 · 高斯模糊）</label>
+      <input type="range" id="blur" min="0" max="8" step="1" value="0">
+    </div>
+    <div class="field">
+      <label>转发次数：<span id="fwdVal">0</span>（赛博文物化 · JPEG 压损）</label>
+      <input type="range" id="fwd" min="0" max="6" step="1" value="0">
+    </div>
+    <div class="field">
+      <label>输出分辨率</label>
+      <select id="res">
+        <option value="1120" selected>1120 px（原版）</option>
+        <option value="800">800 px（缩水版）</option>
+        <option value="560">560 px（祖传压缩包版）</option>
+        <option value="360">360 px（QQ 群连环转发版）</option>
+      </select>
+    </div>
     <div class="btnrow">
       <button id="random">随机来一条</button>
-      <button id="download" class="primary">下载 PNG</button>
+      <button id="download" class="primary">下载图片</button>
     </div>
     <p class="tips">
       句式公式：<b>英伟达董事会最新内部调查发现，前 CEO 黄仁勋在任期间，曾多次【一件微不足道但很欠扁的小事】。</b><br>
-      日期建议填一个未来年份，虚构感拉满。图片仅在本地处理，不会上传。
+      日期建议填一个未来年份，虚构感拉满。「模糊度」和「转发次数」拉高后，成品会呈现被转发了无数手的赛博文物质感。图片仅在本地处理，不会上传。
     </p>
   </div>
 
@@ -147,23 +165,27 @@
 <script>
 (function(){
   var $ = function(id){ return document.getElementById(id); };
+  var SANS = '"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei","Noto Sans SC","Source Han Sans SC",sans-serif';
 
-  // 左图默认：灰色占位 + "皮衣照"字样；右图同理
   var placeholder = function(text){
     var c = document.createElement('canvas'); c.width = 800; c.height = 600;
     var g = c.getContext('2d');
     g.fillStyle = '#ececec'; g.fillRect(0,0,800,600);
-    g.fillStyle = '#bbbbbb'; g.font = '34px serif';
+    g.fillStyle = '#bbbbbb'; g.font = '34px ' + SANS;
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(text, 400, 300);
     return c.toDataURL();
   };
-  var PH_L = placeholder('配图一（点击上传）');
+  var PH_L = placeholder('配图一（点击替换）');
   var PH_R = placeholder('配图二（点击上传）');
 
   var imgL = new Image(), imgR = new Image();
-  imgL.src = PH_L; imgR.src = PH_R;
-  $('v-imgL').src = PH_L; $('v-imgR').src = PH_R;
+  imgR.src = PH_R;
+  $('v-imgR').src = PH_R;
+  // 左图默认皮衣照（与页面同目录的 jensen.png），加载成功后同步预览；失败回退占位图
+  imgL.onload = function(){ $('v-imgL').src = imgL.src; };
+  imgL.onerror = function(){ imgL.src = PH_L; $('v-imgL').src = PH_L; };
+  imgL.src = 'jensen.png';
 
   var presets = [
     {h:'英伟达董事会调查发现，CEO黄仁勋曾用公司微波炉加热开了盖的鲑鱼，导致茶水间一个星期才散掉臭味。',
@@ -218,97 +240,115 @@
     rd.readAsDataURL(file);
   }
 
-  // ── canvas 导出 ──
-  function wrapText(g, text, x, y, maxW, lineH, indent2em){
+  // ── 文字排版 ──
+  function wrapText(g, text, x, y, maxW, lineH, indent){
     var first = true, line = '', w = 0;
     for(var i = 0; i < text.length; i++){
       var ch = text[i];
       var cw = g.measureText(ch).width;
       if(w + cw > maxW && line){
-        g.fillText(line, first && indent2em ? x + 28 : x, y);
+        g.fillText(line, first && indent ? x + 28 : x, y);
         y += lineH; line = ch; w = cw; first = false;
       } else { line += ch; w += cw; }
     }
-    if(line) g.fillText(line, first && indent2em ? x + 28 : x, y);
+    if(line) g.fillText(line, first && indent ? x + 28 : x, y);
     return y + lineH;
   }
 
-  function download(){
-    var W = 1120, PAD = 76, GAP = 20;
-    var g0 = $('export').getContext('2d');
-
-    // 度量阶段
+  // ── 组装新闻卡 canvas（scale = 输出分辨率 / 1120）──
+  function buildCard(scale){
+    var W = Math.round(1120 * scale), PAD = Math.round(76 * scale), GAP = Math.round(20 * scale);
     var src = $('v-src').textContent;
     var headline = $('v-headline').textContent;
     var quote = '“' + $('quote').value.trim() + '”';
     var attr = $('attr').value.trim();
     var date = $('v-date').textContent;
     var innerW = W - PAD*2, colW = (innerW - GAP)/2;
+    var s = scale;
 
-    g0.font = '700 60px "Source Han Serif SC", "Noto Serif SC", serif';
-    var hLines = 0; (function(){
-      var line = '', w = 0;
-      for(var i=0;i<headline.length;i++){
-        var cw = g0.measureText(headline[i]).width;
-        if(w+cw > innerW && line){ hLines++; line = headline[i]; w = cw; }
-        else { line += headline[i]; w += cw; }
-      }
-      if(line) hLines++;
-    })();
-
-    g0.font = '32px "Source Han Serif SC", "Noto Serif SC", serif';
-    var qLines = 0; (function(){
-      var line = '', w = 0, avail = innerW - 56;
-      for(var i=0;i<quote.length;i++){
-        var cw = g0.measureText(quote[i]).width;
-        if(w+cw > avail && line){ qLines++; line = quote[i]; w = cw; }
-        else { line += quote[i]; w += cw; }
-      }
-      if(line) qLines++;
-    })();
-
-    var imgH = colW * 0.75;
-    var H = PAD + 40 /*src*/ + hLines*84 + 36 + qLines*54 + 14 + 44 + 30 + imgH + 44 + PAD + 8;
-
-    var c = $('export'); c.width = W; c.height = H;
+    var c = document.createElement('canvas');
+    c.width = W; c.height = Math.round(2000 * s);
     var g = c.getContext('2d');
-    g.fillStyle = '#ffffff'; g.fillRect(0,0,W,H);
-    g.fillStyle = '#111111'; g.textBaseline = 'alphabetic';
+    g.fillStyle = '#ffffff'; g.fillRect(0,0,W,c.height);
     var y = PAD;
 
-    g.fillStyle = '#555555'; g.font = '26px "Source Han Serif SC", serif';
-    g.fillText(src, PAD, y + 26); y += 40 + 18;
+    g.fillStyle = '#555555'; g.font = Math.round(26*s) + 'px ' + SANS;
+    g.fillText(src, PAD, y + Math.round(26*s)); y += Math.round(58*s);
 
     g.fillStyle = '#111111';
-    g.font = '700 60px "Source Han Serif SC", "Noto Serif SC", serif';
-    y = wrapText(g, headline, PAD, y + 60, innerW, 84, false) + 36 - 60 + 60;
-    y = y; // wrapText returns y+lineH already
-    // recompute: wrapText advanced correctly; add gap
-    y += 0;
+    g.font = '700 ' + Math.round(60*s) + 'px ' + SANS;
+    y = wrapText(g, headline, PAD, y + Math.round(60*s), innerW, Math.round(84*s), false);
+    y += Math.round(36*s);
 
-    g.fillStyle = '#222222'; g.font = '32px "Source Han Serif SC", serif';
-    y = wrapText(g, quote, PAD, y + 32, innerW, 54, true);
-    y += 6;
-    g.fillStyle = '#555555'; g.font = '28px "Source Han Serif SC", serif';
-    g.fillText(attr, PAD + 56, y + 8); y += 44 + 30;
+    g.fillStyle = '#222222'; g.font = Math.round(32*s) + 'px ' + SANS;
+    y = wrapText(g, quote, PAD, y + Math.round(32*s), innerW, Math.round(54*s), true);
+    y += Math.round(6*s);
+    g.fillStyle = '#555555'; g.font = Math.round(28*s) + 'px ' + SANS;
+    g.fillText(attr, PAD + Math.round(56*s), y + Math.round(8*s));
+    y += Math.round(74*s);
 
-    var ix = PAD, iy = y;
-    g.drawImage(imgL, ix, iy, colW, imgH);
-    g.drawImage(imgR, ix + colW + GAP, iy, colW, imgH);
-    y += imgH + 44;
+    var imgH = colW * 0.75;
+    function drawCover(img, x){
+      var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+      if(!iw || !ih){ g.fillStyle = '#ececec'; g.fillRect(x, y, colW, imgH); return; }
+      var r = Math.max(colW/iw, imgH/ih), dw = iw*r, dh = ih*r;
+      g.drawImage(img, x + (colW-dw)/2, y + (imgH-dh)/2, dw, dh);
+    }
+    drawCover(imgL, PAD);
+    drawCover(imgR, PAD + colW + GAP);
+    y += imgH + Math.round(44*s);
 
-    g.fillStyle = '#555555'; g.font = '24px serif';
+    g.fillStyle = '#555555'; g.font = Math.round(24*s) + 'px ' + SANS;
     g.fillText(date, PAD, y);
-    y += PAD;
 
-    c.toBlob(function(blob){
+    // 裁掉底部空白
+    var H = Math.ceil(y + PAD*0.4);
+    var out = document.createElement('canvas'); out.width = W; out.height = H;
+    out.getContext('2d').drawImage(c, 0, 0);
+    return out;
+  }
+
+  // ── 赛博文物化：模糊 + 反复 JPEG 压损（缩小→放回循环）──
+  function degrade(card){
+    var blurPx = parseInt($('blur').value, 10);
+    var fwd = parseInt($('fwd').value, 10);
+    var out = card;
+    if(blurPx > 0){
+      var c = document.createElement('canvas'); c.width = card.width; c.height = card.height;
+      var g = c.getContext('2d');
+      g.filter = 'blur(' + (blurPx * card.width / 1120) + 'px)';
+      g.drawImage(card, 0, 0);
+      g.filter = 'none';
+      out = c;
+    }
+    for(var i = 0; i < fwd; i++){
+      var small = document.createElement('canvas');
+      small.width = Math.max(1, Math.round(out.width * 0.72));
+      small.height = Math.max(1, Math.round(out.height * 0.72));
+      small.getContext('2d').drawImage(out, 0, 0, small.width, small.height);
+      var back = document.createElement('canvas'); back.width = out.width; back.height = out.height;
+      back.getContext('2d').drawImage(small, 0, 0, back.width, back.height);
+      out = back;
+    }
+    return out;
+  }
+
+  function download(){
+    var scale = parseInt($('res').value, 10) / 1120;
+    var card = buildCard(scale);
+    var final = degrade(card);
+    var fwd = parseInt($('fwd').value, 10);
+    // 转发次数越多，编码质量越低，压损痕迹越重
+    var quality = fwd >= 5 ? 0.4 : fwd >= 3 ? 0.5 : fwd >= 1 ? 0.6 : 0.92;
+    var type = fwd > 0 ? 'image/jpeg' : 'image/png';
+    final.toBlob(function(blob){
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'nvidia-board-investigation.png';
+      a.download = fwd > 0 ? 'nvidia-board-investigation.jpg' : 'nvidia-board-investigation.png';
       a.click();
       setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
-    }, 'image/png');
-    toast('已生成 PNG，正在下载 (´▽`)');
+      toast('已生成，正在下载 (´▽`)');
+    }, type, quality);
   }
 
   ['src','headline','quote','attr','date'].forEach(function(id){
@@ -316,6 +356,8 @@
   });
   $('imgL').addEventListener('change', function(e){ loadImage(e.target.files[0], imgL, PH_L); });
   $('imgR').addEventListener('change', function(e){ loadImage(e.target.files[0], imgR, PH_R); });
+  $('blur').addEventListener('input', function(){ $('blurVal').textContent = this.value; });
+  $('fwd').addEventListener('input', function(){ $('fwdVal').textContent = this.value; });
   $('random').addEventListener('click', function(){
     var p = presets[Math.floor(Math.random()*presets.length)];
     $('headline').value = p.h; $('quote').value = p.q; $('attr').value = p.a;

@@ -6,14 +6,14 @@
 <title>像素工坊 · 像素画编辑器</title>
 <style>
   :root{
-    --bg:#e6f0fa; --card:#ffffff;
-    --accent:#3389d1; --accent-soft:#7fb8e8; --accent-shadow:rgba(51,137,209,.32);
-    --line:rgba(51,80,107,.12); --line-strong:rgba(51,80,107,.22); --shadow-flat:rgba(51,80,107,.18);
-    --text:#33506b; --text-dim:#7d95ad;
+    --bg:#16161e; --card:#1f2335;
+    --accent:#7dcfff; --accent-soft:rgba(125,207,255,.14); --accent-shadow:rgba(122,162,247,.35);
+    --line:#23283c; --line-strong:#292e42; --shadow-flat:rgba(0,0,0,.4);
+    --text:#c0caf5; --text-dim:#565f89;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{
-    font-family:"Times New Roman",Times,"Source Han Serif SC","Noto Serif SC","思源宋体","Songti SC","SimSun",serif;
+    font-family:ui-monospace,"JetBrains Mono","Cascadia Mono",Consolas,"Courier New",monospace;
     background:var(--bg);
     color:var(--text);
     min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px;
@@ -103,7 +103,7 @@
     </div>
     <div>
       <div class="lbl">自定义颜色</div>
-      <input type="color" id="custom" value="#3389d1">
+      <input type="color" id="custom" value="#7dcfff">
     </div>
     <div>
       <div class="lbl">笔刷大小 <span id="szVal" style="color:var(--accent);">1</span></div>
@@ -117,7 +117,7 @@
       <button class="btn" id="btnUndo">↩ 撤销</button>
       <button class="btn" id="btnCopy">⧉ 复制到剪贴板</button>
     </div>
-    <div class="info">坐标 <b id="pos">—</b> · 画布 <b id="curSize">32×32</b> · 颜色 <b id="curColor" style="color:#3389d1;">#3389d1</b></div>
+    <div class="info">坐标 <b id="pos">—</b> · 画布 <b id="curSize">32×32</b> · 颜色 <b id="curColor" style="color:#7dcfff;">#7dcfff</b></div>
     <div class="hint">左键绘制 · 右键擦除 · 按住拖动连续画<br>取色：点击画布已有颜色（或按 I）</div>
   </div>
 </div>
@@ -130,7 +130,7 @@ const SIZES=[16,32,48,64];
 let N=32;
 const cv=$('board'), ctx=cv.getContext('2d');
 ctx.imageSmoothingEnabled=false;
-const PALETTE=['#3389d1','#6ec3f0','#dff3ff','#0d1b2a','#5a7088','#9fe8c0','#f2e6a0','#f28ba0',
+const PALETTE=['#7dcfff','#6ec3f0','#dff3ff','#0d1b2a','#5a7088','#9fe8c0','#f2e6a0','#f28ba0',
                '#e0e6f0','#8aa0b8','#2a3a50','#7fb8e8','#f0a868','#c06a3c','#7ac8a0','#3c7a68'];
 let grid=Array.from({length:N},()=>Array(N).fill(null)); // null=透明
 let tool='pen', cur=PALETTE[0], brush=1;
@@ -215,7 +215,7 @@ cv.addEventListener('mousedown',e=>{
   const [x,y]=evPos(e);
   snap();
   const color=e.button===2? null:cur;
-  if(tool==='pick'){ cur=grid[y][x]||'#3389d1'; syncCur(); updateInfo(); return; }
+  if(tool==='pick'){ cur=grid[y][x]||'#7dcfff'; syncCur(); updateInfo(); return; }
   if(tool==='fill'){ if(color!==null) floodFill(x,y,color); }
   else { applyBrush(x,y,color); drawing=true; }
   render(); updateInfo();
@@ -318,7 +318,7 @@ function copyClip(){
 function demoArt(){
   snap();
   const set=(x,y,c)=>{ if(x>=0&&y>=0&&x<N&&y<N) grid[y][x]=c; };
-  const A='#6ec3f0', B='#3389d1', C='#dff3ff', D='#9fe8c0', E='#f2e6a0', K='#0d1b2a';
+  const A='#7aa2f7', B='#7dcfff', C='#dff3ff', D='#9fe8c0', E='#f2e6a0', K='#0d1b2a';
   // 背景波浪
   for(let x=0;x<N;x++){
     for(let y=0;y<N;y++){
