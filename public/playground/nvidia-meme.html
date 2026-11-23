@@ -130,7 +130,7 @@
     </div>
     <p class="tips">
       句式公式：<b>英伟达董事会最新内部调查发现，前 CEO 黄仁勋在任期间，曾多次【一件微不足道但很欠扁的小事】。</b><br>
-      日期建议填一个未来年份，虚构感拉满。「模糊度」和「转发次数」只影响下载的成品，预览始终是干净原图。图片仅在本地处理，不会上传。
+      日期建议填一个未来年份，虚构感拉满。「模糊度」「转发次数」「输出分辨率」的效果都会直接反映在预览里，所见即所得。图片仅在本地处理，不会上传。
     </p>
   </div>
 
@@ -274,14 +274,20 @@
     return out;
   }
 
-  // ── 预览：把同一张卡缩放画到 #preview 上（与导出像素级一致）──
+  // ── 预览：走与导出完全相同的管线（含文物化），所见即所得 ──
   function renderPreview(){
-    var card = buildCard(1);
+    var resPx = parseInt($('res').value, 10);
+    var scale = resPx / 1120;
+    // 预览画布固定 1120 宽显示；低分辨率先按真实比例生成再放大回预览尺寸，
+    // 这样 360px 档的糊感和导出一致
+    var card = buildCard(scale);
+    var final = degrade(card);
     var pv = $('preview');
-    pv.width = card.width; pv.height = card.height;
+    pv.width = 1120; pv.height = Math.round(final.height / scale);
     var g = pv.getContext('2d');
+    g.imageSmoothingEnabled = true;
     g.clearRect(0,0,pv.width,pv.height);
-    g.drawImage(card, 0, 0);
+    g.drawImage(final, 0, 0, pv.width, pv.height);
   }
 
   // ── 赛博文物化：模糊 + 反复 JPEG 压损（缩小→放回循环）──
@@ -339,6 +345,9 @@
   }
 
   ['src','headline','quote','attr','date'].forEach(function(id){
+    $(id).addEventListener('input', renderPreview);
+  });
+  ['blur','fwd','res'].forEach(function(id){
     $(id).addEventListener('input', renderPreview);
   });
   $('imgL').addEventListener('change', function(e){ loadImageFile(e.target.files[0], imgL, PH_L); });
