@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>英伟达董事会调查发现 · 梗图生成器</title>
+<style>
+  :root{
+    --bg:#e6f0fa; --card:#ffffff;
+    --accent:#3389d1; --accent-soft:#7fb8e8; --accent-shadow:rgba(51,137,209,.32);
+    --line:rgba(51,80,107,.12); --line-strong:rgba(51,80,107,.22); --shadow-flat:rgba(51,80,107,.18);
+    --text:#33506b; --text-dim:#7d95ad;
+    --news-ink:#111111; --news-dim:#555555;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:"Times New Roman",Times,"Source Han Serif SC","Noto Serif SC","思源宋体","Songti SC","SimSun",serif;
+    background:var(--bg); color:var(--text);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    gap:16px; padding:28px 16px 48px;
+  }
+  .back{
+    align-self:flex-start; font-size:14px; color:var(--text-dim); text-decoration:none;
+    padding:8px 16px; border-radius:999px; background:var(--card);
+    box-shadow:0 4px 14px -6px var(--shadow-flat); transition:color .2s;
+  }
+  .back:hover{color:var(--accent);}
+  h1{font-size:24px; font-weight:600; letter-spacing:2px; color:var(--text); text-align:center;}
+  .sub{font-size:13px; color:var(--text-dim); letter-spacing:1px; margin-top:-10px; text-align:center;}
+
+  .layout{display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap; justify-content:center; max-width:1160px;}
+  .panel{background:var(--card); border-radius:22px; padding:20px 22px;
+    box-shadow:0 10px 26px -12px var(--shadow-flat); border:1px solid var(--line);}
+  .editor{width:400px; display:flex; flex-direction:column; gap:14px;}
+  .preview-panel{padding:14px;}
+
+  .field{display:flex; flex-direction:column; gap:5px;}
+  .field label{font-size:12px; letter-spacing:1px; color:var(--text-dim);}
+  .field input, .field textarea{
+    font-family:inherit; font-size:14px; color:var(--text);
+    background:var(--bg); border:1px solid var(--line-strong); border-radius:10px;
+    padding:9px 12px; outline:none; resize:vertical; transition:border-color .15s;
+  }
+  .field input:focus, .field textarea:focus{border-color:var(--accent);}
+  textarea{min-height:58px; line-height:1.5;}
+
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap;}
+  button{
+    font-family:inherit; font-size:13px; cursor:pointer; border:none;
+    padding:9px 14px; border-radius:12px; color:var(--text-dim);
+    background:var(--bg); border:1px solid var(--line-strong);
+    transition:color .12s, border-color .12s;
+  }
+  button:hover{color:var(--accent); border-color:var(--accent);}
+  button.primary{background:var(--accent); color:#fff; border-color:var(--accent);
+    box-shadow:0 6px 16px -6px var(--accent-shadow);}
+  button.primary:hover{color:#fff; filter:brightness(1.06);}
+
+  .tips{font-size:12px; color:var(--text-dim); line-height:1.7;}
+  .tips b{color:var(--accent); font-weight:600;}
+
+  /* ── 预览：仿新闻卡 ── */
+  .news{background:#fff; width:560px; max-width:88vw; color:var(--news-ink);
+    padding:34px 38px 30px; font-family:"Times New Roman",Times,"Source Han Serif SC","Noto Serif SC","Songti SC","SimSun",serif;}
+  .news .src{font-size:13px; color:var(--news-dim); letter-spacing:1px; margin-bottom:14px;}
+  .news .headline{font-size:30px; font-weight:700; line-height:1.4; letter-spacing:1px; margin-bottom:18px;}
+  .news .quote{font-size:16px; line-height:1.8; color:#222; margin-bottom:10px;
+    text-indent:2em;}
+  .news .attribution{font-size:14px; color:var(--news-dim); margin-bottom:22px; text-indent:2em;}
+  .news .imgs{display:flex; gap:10px;}
+  .news .imgs figure{flex:1; margin:0;}
+  .news .imgs img{display:block; width:100%; aspect-ratio:4/3; object-fit:cover; background:#eee;}
+  .news .date{font-size:12px; color:var(--news-dim); margin-top:10px;}
+
+  canvas#export{display:none;}
+  .toast{position:fixed; left:50%; bottom:32px; transform:translateX(-50%) translateY(20px);
+    background:var(--text); color:#fff; font-size:13px; letter-spacing:1px;
+    padding:10px 20px; border-radius:999px; opacity:0; pointer-events:none; transition:.25s;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:1020px){ .editor{width:min(560px,92vw);} }
+</style>
+</head>
+<body>
+<a class="back" href="../">← 返回</a>
+<h1>英伟达董事会调查发现</h1>
+<p class="sub">梗图生成器 · 一本正经地胡说八道</p>
+
+<div class="layout">
+  <div class="panel editor">
+    <div class="field">
+      <label>媒体名（左上角署名）</label>
+      <input id="src" value="arknights">
+    </div>
+    <div class="field">
+      <label>大标题</label>
+      <textarea id="headline">英伟达董事会调查发现，CEO黄仁勋玩绝区零只抽萝莉角色</textarea>
+    </div>
+    <div class="field">
+      <label>引语</label>
+      <textarea id="quote">我们发现了黄仁勋的绝区零账号，让我们震惊的是，他在这款二次元动作游戏中，坚持只抽取体型娇小可爱的女角色</textarea>
+    </div>
+    <div class="field">
+      <label>引语署名</label>
+      <input id="attr" value="一位明显受惊的英伟达高管说。">
+    </div>
+    <div class="field">
+      <label>日期</label>
+      <input id="date" value="November 17, 2028">
+    </div>
+    <div class="field">
+      <label>左图（黄仁勋皮衣照，可选）</label>
+      <input type="file" id="imgL" accept="image/*">
+    </div>
+    <div class="field">
+      <label>右图（游戏截图/梗图，可选）</label>
+      <input type="file" id="imgR" accept="image/*">
+    </div>
+    <div class="btnrow">
+      <button id="random">随机来一条</button>
+      <button id="download" class="primary">下载 PNG</button>
+    </div>
+    <p class="tips">
+      句式公式：<b>英伟达董事会最新内部调查发现，前 CEO 黄仁勋在任期间，曾多次【一件微不足道但很欠扁的小事】。</b><br>
+      日期建议填一个未来年份，虚构感拉满。图片仅在本地处理，不会上传。
+    </p>
+  </div>
+
+  <div class="panel preview-panel">
+    <div class="news" id="news">
+      <p class="src" id="v-src">arknights</p>
+      <h2 class="headline" id="v-headline"></h2>
+      <p class="quote" id="v-quote"></p>
+      <p class="attribution" id="v-attr"></p>
+      <div class="imgs">
+        <figure><img id="v-imgL" alt="配图一"></figure>
+        <figure><img id="v-imgR" alt="配图二"></figure>
+      </div>
+      <p class="date" id="v-date">November 17, 2028</p>
+    </div>
+  </div>
+</div>
+
+<canvas id="export"></canvas>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+
+  // 左图默认：灰色占位 + "皮衣照"字样；右图同理
+  var placeholder = function(text){
+    var c = document.createElement('canvas'); c.width = 800; c.height = 600;
+    var g = c.getContext('2d');
+    g.fillStyle = '#ececec'; g.fillRect(0,0,800,600);
+    g.fillStyle = '#bbbbbb'; g.font = '34px serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, 400, 300);
+    return c.toDataURL();
+  };
+  var PH_L = placeholder('配图一（点击上传）');
+  var PH_R = placeholder('配图二（点击上传）');
+
+  var imgL = new Image(), imgR = new Image();
+  imgL.src = PH_L; imgR.src = PH_R;
+  $('v-imgL').src = PH_L; $('v-imgR').src = PH_R;
+
+  var presets = [
+    {h:'英伟达董事会调查发现，CEO黄仁勋曾用公司微波炉加热开了盖的鲑鱼，导致茶水间一个星期才散掉臭味。',
+     q:'微波炉内部的清洁工作目前仍在进行中，我们建议全体员工暂时改用冷水午餐。',
+     a:'一位不愿透露姓名的茶水间清洁主管说。'},
+    {h:'英伟达董事会调查发现，前CEO黄仁勋玩卫戍协议经常速本漏怪，还发问号表情给没能兜住的队友。',
+     q:'他的补刀数据令人担忧，但他对队友发出的问号更令人担忧。',
+     a:'一位已经卸载游戏的副本队长说。'},
+    {h:'英伟达董事会调查发现，前CEO黄仁勋曾多次在周五下午5点59分在群里发"大家周末有空吗？简单开个小会"。',
+     q:'会议确实很简单，只开了一个周末。',
+     a:'一位明显憔悴的英伟达员工说。'},
+    {h:'英伟达董事会调查发现，前CEO黄仁勋曾多次在推出新显卡前，亲自把旧款显卡的驱动调慢5%。',
+     q:'我们不做制造需求的事情，我们只做需求的搬运工。',
+     a:'一位刚刚更新完驱动的英伟达工程师说。'},
+    {h:'英伟达董事会调查发现，前CEO黄仁勋玩排位赛时经常秒锁输出位，并在开局3分钟送出首杀后直接断线。',
+     q:'网络波动是每个人的责任，但显然主要是网络的责任。',
+     a:'一位明显血压升高的野区选手说。'},
+    {h:'英伟达董事会调查发现，CEO黄仁勋的退款申请理由全部填写为"商品与我想象中的不一样"，共计三十七次。',
+     q:'想象力是一种稀缺资源，他只是用得比谁都频繁。',
+     a:'一位已经麻了的客服主管说。'},
+    {h:'英伟达董事会调查发现，前CEO黄仁勋在健身房办的卡从未使用过，但每年续费时都坚称"下个月就开始"。',
+     q:'下个月是一个无限递归的时间概念。',
+     a:'一位明显看开了的健身房前台说。'},
+    {h:'英伟达董事会调查发现，前CEO黄仁勋曾多次把显卡发布会的PPT留到彩排前一晚才做，并在凌晨3点给设计师发"在吗"。',
+     q:'在吗两个字，是当代职场最恐怖的恐怖片。',
+     a:'一位明显失眠的设计师说。'},
+    {h:'英伟达董事会调查发现，CEO黄仁勋玩绝区零只抽萝莉角色。',
+     q:'我们发现了黄仁勋的绝区零账号，让我们震惊的是，他在这款二次元动作游戏中，坚持只抽取体型娇小可爱的女角色。',
+     a:'一位明显受惊的英伟达高管说。'},
+    {h:'英伟达董事会调查发现，前CEO黄仁勋多次在食堂插队，理由是"我赶时间拯救算力行业"。',
+     q:'算力行业确实被拯救了，但那天他没吃到红烧肉。',
+     a:'一位明显饿着肚子的排队员工说。'}
+  ];
+
+  function render(){
+    $('v-src').textContent = $('src').value.trim() || 'arknights';
+    $('v-headline').textContent = $('headline').value.trim();
+    $('v-quote').textContent = '“' + $('quote').value.trim() + '”';
+    $('v-attr').textContent = $('attr').value.trim();
+    $('v-date').textContent = $('date').value.trim();
+  }
+
+  function toast(msg){
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+  }
+
+  function loadImage(file, img, ph){
+    if(!file){ img.src = ph; return; }
+    var rd = new FileReader();
+    rd.onload = function(){ img.src = rd.result; };
+    rd.readAsDataURL(file);
+  }
+
+  // ── canvas 导出 ──
+  function wrapText(g, text, x, y, maxW, lineH, indent2em){
+    var first = true, line = '', w = 0;
+    for(var i = 0; i < text.length; i++){
+      var ch = text[i];
+      var cw = g.measureText(ch).width;
+      if(w + cw > maxW && line){
+        g.fillText(line, first && indent2em ? x + 28 : x, y);
+        y += lineH; line = ch; w = cw; first = false;
+      } else { line += ch; w += cw; }
+    }
+    if(line) g.fillText(line, first && indent2em ? x + 28 : x, y);
+    return y + lineH;
+  }
+
+  function download(){
+    var W = 1120, PAD = 76, GAP = 20;
+    var g0 = $('export').getContext('2d');
+
+    // 度量阶段
+    var src = $('v-src').textContent;
+    var headline = $('v-headline').textContent;
+    var quote = '“' + $('quote').value.trim() + '”';
+    var attr = $('attr').value.trim();
+    var date = $('v-date').textContent;
+    var innerW = W - PAD*2, colW = (innerW - GAP)/2;
+
+    g0.font = '700 60px "Source Han Serif SC", "Noto Serif SC", serif';
+    var hLines = 0; (function(){
+      var line = '', w = 0;
+      for(var i=0;i<headline.length;i++){
+        var cw = g0.measureText(headline[i]).width;
+        if(w+cw > innerW && line){ hLines++; line = headline[i]; w = cw; }
+        else { line += headline[i]; w += cw; }
+      }
+      if(line) hLines++;
+    })();
+
+    g0.font = '32px "Source Han Serif SC", "Noto Serif SC", serif';
+    var qLines = 0; (function(){
+      var line = '', w = 0, avail = innerW - 56;
+      for(var i=0;i<quote.length;i++){
+        var cw = g0.measureText(quote[i]).width;
+        if(w+cw > avail && line){ qLines++; line = quote[i]; w = cw; }
+        else { line += quote[i]; w += cw; }
+      }
+      if(line) qLines++;
+    })();
+
+    var imgH = colW * 0.75;
+    var H = PAD + 40 /*src*/ + hLines*84 + 36 + qLines*54 + 14 + 44 + 30 + imgH + 44 + PAD + 8;
+
+    var c = $('export'); c.width = W; c.height = H;
+    var g = c.getContext('2d');
+    g.fillStyle = '#ffffff'; g.fillRect(0,0,W,H);
+    g.fillStyle = '#111111'; g.textBaseline = 'alphabetic';
+    var y = PAD;
+
+    g.fillStyle = '#555555'; g.font = '26px "Source Han Serif SC", serif';
+    g.fillText(src, PAD, y + 26); y += 40 + 18;
+
+    g.fillStyle = '#111111';
+    g.font = '700 60px "Source Han Serif SC", "Noto Serif SC", serif';
+    y = wrapText(g, headline, PAD, y + 60, innerW, 84, false) + 36 - 60 + 60;
+    y = y; // wrapText returns y+lineH already
+    // recompute: wrapText advanced correctly; add gap
+    y += 0;
+
+    g.fillStyle = '#222222'; g.font = '32px "Source Han Serif SC", serif';
+    y = wrapText(g, quote, PAD, y + 32, innerW, 54, true);
+    y += 6;
+    g.fillStyle = '#555555'; g.font = '28px "Source Han Serif SC", serif';
+    g.fillText(attr, PAD + 56, y + 8); y += 44 + 30;
+
+    var ix = PAD, iy = y;
+    g.drawImage(imgL, ix, iy, colW, imgH);
+    g.drawImage(imgR, ix + colW + GAP, iy, colW, imgH);
+    y += imgH + 44;
+
+    g.fillStyle = '#555555'; g.font = '24px serif';
+    g.fillText(date, PAD, y);
+    y += PAD;
+
+    c.toBlob(function(blob){
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'nvidia-board-investigation.png';
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+    }, 'image/png');
+    toast('已生成 PNG，正在下载 (´▽`)');
+  }
+
+  ['src','headline','quote','attr','date'].forEach(function(id){
+    $(id).addEventListener('input', render);
+  });
+  $('imgL').addEventListener('change', function(e){ loadImage(e.target.files[0], imgL, PH_L); });
+  $('imgR').addEventListener('change', function(e){ loadImage(e.target.files[0], imgR, PH_R); });
+  $('random').addEventListener('click', function(){
+    var p = presets[Math.floor(Math.random()*presets.length)];
+    $('headline').value = p.h; $('quote').value = p.q; $('attr').value = p.a;
+    render();
+  });
+  $('download').addEventListener('click', download);
+  render();
+})();
+</script>
+</body>
+</html>
